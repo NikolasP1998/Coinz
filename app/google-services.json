@@ -1,0 +1,107 @@
+{
+  "project_info": {
+    "project_number": "1042904358681",
+    "firebase_url": "https://coinz-e837a.firebaseio.com",
+    "project_id": "coinz-e837a",
+    "storage_bucket": "coinz-e837a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042904358681:android:5e77e34147548680",
+        "android_client_info": {
+          "package_name": "nikolas.example.com.coinz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1042904358681-9lgdvdle1u873dmnsqpjfm8jkm2kcprf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "nikolas.example.com.coinz",
+            "certificate_hash": "c2f30c3257643e340f6890c80f412907b0159848"
+          }
+        },
+        {
+          "client_id": "1042904358681-9bvdft9hlnldri53v33hgbi5ekai8vnf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "nikolas.example.com.coinz",
+            "certificate_hash": "121f02766a52fddbbc98087ee7a3d0b29c6130d3"
+          }
+        },
+        {
+          "client_id": "1042904358681-glqs74dslp18lj7eas3orecqsn2u574d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGffK9gvp2sXoabQ7tMg2chy7KICAKYVI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1042904358681-glqs74dslp18lj7eas3orecqsn2u574d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042904358681:android:cb0bbd861a9dbb23",
+        "android_client_info": {
+          "package_name": "nikolas.example.com.coinz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1042904358681-pdlckp5kffreh65bbp6h4nb97qpepbh5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "nikolas.example.com.coinz",
+            "certificate_hash": "902ed88092a9c7b5dfa38dd6dd028d7f9de7ad68"
+          }
+        },
+        {
+          "client_id": "1042904358681-glqs74dslp18lj7eas3orecqsn2u574d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGffK9gvp2sXoabQ7tMg2chy7KICAKYVI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1042904358681-glqs74dslp18lj7eas3orecqsn2u574d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
