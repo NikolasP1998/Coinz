@@ -31,6 +31,8 @@ import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
+import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListener, PermissionsListener {
@@ -54,6 +56,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     override fun onCreate(savedInstanceState: Bundle?) {
         println("1")
         super.onCreate(savedInstanceState)
+        verifyUserIsLoggedIn()
         setContentView(R.layout.activity_main)
         //setSupportActionBar(toolbar)
 
@@ -276,6 +279,15 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         }
         return IconFactory.getInstance(this).fromResource(id)
 
+    }
+    private fun verifyUserIsLoggedIn() {
+        val uid=FirebaseAuth.getInstance().uid
+        // if not logged in , return to register screen
+        if (uid==null) {
+            val intent = Intent(this, RegisterActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
+            startActivity(intent)
+        }
     }
 
 
