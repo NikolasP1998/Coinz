@@ -37,6 +37,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.view.Menu
 import android.view.MenuInflater
+import android.view.MenuItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -81,6 +82,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             Log.d("Login2", "$intent")
             //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
             startActivity(intent)
+
         }
         else {
             setContentView(R.layout.activity_main)
@@ -88,6 +90,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             val date = getCurrentDateTime()
             downloadDate = date.toString("yyyy/MM/dd")
             link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
+            
+
 
             //setSupportActionBar(toolbar)
             user = FirebaseAuth.getInstance()?.currentUser!!
@@ -101,6 +105,53 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             mapView?.onCreate(savedInstanceState)
             mapView?.getMapAsync(this)
 
+
+
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater=menuInflater
+        inflater.inflate(R.menu.menu_main,menu)
+
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        when (item?.itemId){
+            R.id.action_friends->{
+                Toast.makeText(this,"friends", Toast.LENGTH_LONG).show()
+                return true
+            }
+            R.id.action_lead->{
+                Toast.makeText(this,"lead", Toast.LENGTH_LONG).show()
+                return true
+            }
+            R.id.action_goal->{
+                Toast.makeText(this,"Goal", Toast.LENGTH_LONG).show()
+                return true
+            }
+            else->{
+                return super.onOptionsItemSelected(item)
+            }
+
+        }
+
+    }
+
+
+
+    override fun onMapReady(mapboxMap: MapboxMap?) {
+        if (mapboxMap == null) {
+            Log.d(tag, "[onMapReady] mapboxMap is null")
+        } else {
+            map = mapboxMap
+            // Set user interface options
+            map?.uiSettings?.isCompassEnabled = true
+            map?.uiSettings?.isZoomControlsEnabled = true
+            println("13")
+            // Make location information available
+            enableLocation()
             markers = viewMarkers()
             var userid = user?.uid
             db?.collection("$userid")?.get()?.addOnSuccessListener {
@@ -121,40 +172,17 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
                         Log.d("MarkerRemoval", "Removed marker $id")
 
-                        }
-
-
                     }
-                    mapView?.getMapAsync { _ ->
-                        markersList = map?.addMarkers(markers) as ArrayList
+
+
+                }
+                mapView?.getMapAsync { _ ->
+                    markersList = map?.addMarkers(markers) as ArrayList
 
                 }
 
 
             }
-
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        val inflater=menuInflater
-        inflater.inflate(R.menu.menu_main,menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-
-
-    override fun onMapReady(mapboxMap: MapboxMap?) {
-        if (mapboxMap == null) {
-            Log.d(tag, "[onMapReady] mapboxMap is null")
-        } else {
-            map = mapboxMap
-            // Set user interface options
-            map?.uiSettings?.isCompassEnabled = true
-            map?.uiSettings?.isZoomControlsEnabled = true
-            println("13")
-            // Make location information available
-            enableLocation()
         }
     }
 
