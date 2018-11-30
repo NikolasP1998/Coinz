@@ -32,8 +32,17 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import android.content.Intent
+import android.graphics.Color
+import android.os.CountDownTimer
+import android.os.Handler
+import android.view.Menu
+import android.view.MenuInflater
 import com.google.firebase.auth.FirebaseAuth
-
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlin.collections.ArrayList
+import android.widget.Toast
+import kotlin.concurrent.timer
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListener, PermissionsListener {
 
@@ -43,41 +52,97 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     private var downloadDate = "" // Format: YYYY/MM/DD
     private val preferencesFile = "MyPrefsFile" // for storing preferences
 
-    private lateinit var originLocation : Location
-    private lateinit var permissionsManager : PermissionsManager
-    private lateinit var locationEngine : LocationEngine
-    private lateinit var locationLayerPlugin : LocationLayerPlugin
+    private lateinit var originLocation: Location
+    private lateinit var permissionsManager: PermissionsManager
+    private lateinit var locationEngine: LocationEngine
+    private lateinit var locationLayerPlugin: LocationLayerPlugin
     val arg_for_download = DownloadCompleteRunner
     val link = DownloadFileTask(arg_for_download)
-
-
-
+    var handler:Handler= Handler()
+    var db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    // variables for markers declared below
+    private lateinit var markers: ArrayList<MarkerOptions>
+    private lateinit var markersList: ArrayList<Marker>
+    private lateinit var user: FirebaseUser
+    private var numCollectedCoins = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        println("1")
+
+
         super.onCreate(savedInstanceState)
-        verifyUserIsLoggedIn()
-        setContentView(R.layout.activity_main)
-        //setSupportActionBar(toolbar)
 
-        println("hiTest")
 
-        Mapbox.getInstance(applicationContext, getString(R.string.access_token))
-        mapView = findViewById(R.id.mapboxMapView)
-
-        mapView?.onCreate(savedInstanceState)
-        mapView?.getMapAsync(this)
-        println("2")
-        val date = getCurrentDateTime()
-        downloadDate = date.toString("yyyy/MM/dd")
-        link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
-        println("25")
-        mapView?.getMapAsync {_ ->
-            map?.addMarkers(viewMarkers())
-        //println("55")
+        val uid=FirebaseAuth.getInstance().uid
+        Log.d("Login","$uid")
+        // if not logged in , return to register screen
+        if (uid==null) {
+            val intent = Intent(this, RegisterActivity::class.java)
+            //finish()
+            Log.d("Login2", "$intent")
+            //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
+            startActivity(intent)
         }
+        else {
+            setContentView(R.layout.activity_main)
 
+            val date = getCurrentDateTime()
+            downloadDate = date.toString("yyyy/MM/dd")
+            link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
+
+            //setSupportActionBar(toolbar)
+            user = FirebaseAuth.getInstance()?.currentUser!!
+
+
+
+
+            Mapbox.getInstance(applicationContext, getString(R.string.access_token))
+            mapView = findViewById(R.id.mapboxMapView)
+
+            mapView?.onCreate(savedInstanceState)
+            mapView?.getMapAsync(this)
+
+            markers = viewMarkers()
+            var userid = user?.uid
+            db?.collection("$userid")?.get()?.addOnSuccessListener {
+                val markerIds = markers.map { marker -> marker.title } as ArrayList<String>
+
+                numCollectedCoins = it.size()
+                println("collected coins:$numCollectedCoins")
+                it.forEach {
+                    var id = it.getString("coinid")
+                    println("query coin id :$id")
+                    if (markerIds.contains(id)) {//coin already collected , remove marker
+                        //map?.removeMarker()
+                        println("before:${markers.size} ")
+                        markers.removeAt(markerIds.indexOf(id))
+                        println("after:${markers.size} ")
+
+                        markerIds.remove(id)
+
+                        Log.d("MarkerRemoval", "Removed marker $id")
+
+                        }
+
+
+                    }
+                    mapView?.getMapAsync { _ ->
+                        markersList = map?.addMarkers(markers) as ArrayList
+
+                }
+
+
+            }
+
+        }
     }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater=menuInflater
+        inflater.inflate(R.menu.menu_main,menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
         if (mapboxMap == null) {
@@ -103,7 +168,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             Log.d(tag, "Permissions are not granted")
             permissionsManager = PermissionsManager(this)
             permissionsManager.requestLocationPermissions(this)
-            println("14")
         }
     }
 
@@ -115,15 +179,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             interval = 5000 // preferably every 5 seconds
             fastestInterval = 1000 // at most every second
             priority = LocationEnginePriority.HIGH_ACCURACY
-            println("15")
             activate()
         }
         val lastLocation = locationEngine.lastLocation
-        println("15")
         if (lastLocation != null) {
             originLocation = lastLocation
             setCameraPosition(lastLocation)
-            println("16")
         } else { locationEngine.addLocationEngineListener(this) }
     }
 
@@ -138,7 +199,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                     setLocationLayerEnabled(true)
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
-                    println("17")
                 }
             }
         }
@@ -153,9 +213,47 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         if (location == null) {
             Log.d(tag, "[onLocationChanged] location is null")
         } else {
-            println("18")
             originLocation = location
             setCameraPosition(originLocation)
+            var userLoc=LatLng(location.latitude,location.longitude)
+            for (m in markers){
+                var markerPos =m.position
+                if (userLoc.distanceTo(markerPos)<=25) {
+                    var id =m.title
+                    var coinVal=m.snippet.substringAfter(": ").toDouble()
+                    var curr=m.snippet.substringBefore(":")
+                    var coinCollected=Coin(id,coinVal,curr)
+                    var userid=user?.uid
+                    numCollectedCoins=numCollectedCoins+1
+                    println("updated collected coins:$numCollectedCoins")
+
+                    db?.collection("$userid")?.document(id)?.set(coinCollected)?.addOnSuccessListener {
+
+
+
+
+
+                        Toast.makeText(this,"Coin collected", Toast.LENGTH_LONG).show()
+                        markers.remove(m)
+
+                        //update map
+                        mapView?.getMapAsync{_->
+                            markersList.forEach{
+                                if (it.title==m.title){
+                                    // numCollectedCoins=collected!!.size
+                                    map?.removeMarker(it)
+                                }
+                            }
+                        }
+
+
+                    }?.addOnFailureListener{
+                        exception: java.lang.Exception -> Toast.makeText(this,exception.toString(), Toast.LENGTH_LONG).show()
+
+                    }
+                }
+
+            }
         }
     }
 
@@ -168,7 +266,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {
         Log.d(tag,"Permissions: $permissionsToExplain")
         //Present popup message or dialog
-        println("19")
     }
 
     override fun onPermissionResult(granted: Boolean) {
@@ -248,8 +345,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     }
 
 
-    fun viewMarkers() : List<MarkerOptions> {
-        val list: MutableList<MarkerOptions> = ArrayList()
+    fun viewMarkers() : ArrayList<MarkerOptions> {
+        val list = ArrayList<MarkerOptions>()
         var str = File("/data/data/nikolas.example.com.coinz/files/coinzmap.geojson").readText(Charsets.UTF_8)
         var json = FeatureCollection.fromJson(str).features()
         json?.forEach {
@@ -262,10 +359,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             var symbol = prop.get("marker-symbol").asString
             var currency = prop.get("currency").asString
             var color = prop.get("marker-color").asString
-            var mark = MarkerOptions().title(symbol).snippet(color).position(x).icon(findIcon(currency))
+            var id = prop.get("id").asString
+            var value = prop.get("value").asString
+            var mark = MarkerOptions().title(id).snippet(currency + ": $value").position(x).icon(findIcon(currency))
             list.add(mark)
         }
-        println("testList $list")
+
         return list
     }
 
@@ -282,13 +381,19 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     }
     private fun verifyUserIsLoggedIn() {
         val uid=FirebaseAuth.getInstance().uid
+        Log.d("Login","$uid")
         // if not logged in , return to register screen
         if (uid==null) {
             val intent = Intent(this, RegisterActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
+            finish()
+            Log.d("Login2","$intent")
+            //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
             startActivity(intent)
         }
     }
 
 
+
 }
+
+class Coin(val coinid:String,val coinvalue:Double,val curr: String)

@@ -3,8 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="nikolas.example.com.coinz.MainActivity">
     <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:title="@string/action_settings"
-        app:showAsAction="never" />
+        android:id="@+id/action_lead"
+        android:icon="@drawable/lead"
+        android:title="action_lead"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_friends"
+        android:icon="@drawable/friends"
+        android:title="action_friends"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/action_goal"
+        android:icon="@drawable/goal"
+        android:title="action_goal"
+        app:showAsAction="always"/>
 </menu>

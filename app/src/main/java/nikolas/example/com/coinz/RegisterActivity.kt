@@ -61,12 +61,13 @@ class RegisterActivity : AppCompatActivity() {
         val db = FirebaseFirestore.getInstance()
 
         val uid =FirebaseAuth.getInstance().uid ?:""
-
-        val user=User(uid,username_editText_register.text.toString(),email_edittext_register.text.toString(),0.0)
-        db.collection("users")
-                .add(user)
+        val username = username_editText_register.text.toString()
+        val email =email_edittext_register.text.toString()
+        val user=User(uid,username,email,0.0 )
+        db.collection("userData")?.document("$username")
+                .set(user)
                 .addOnSuccessListener {
-                    Log.d("alo","user added")
+                    Log.d("Register","user added")
                 }
 
 
