@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
 
         super.onCreate(savedInstanceState)
-        
+
 
 
 

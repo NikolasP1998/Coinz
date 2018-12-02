@@ -19,4 +19,15 @@
         android:icon="@drawable/goal"
         android:title="action_goal"
         app:showAsAction="always"/>
+    <item
+        android:id="@+id/action_wand"
+        android:icon="@drawable/wand"
+        android:title="action_wand"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/action_signout"
+        android:icon="@drawable/signout2"
+        android:title="action_signout"
+
+        app:showAsAction="always"/>
 </menu>
