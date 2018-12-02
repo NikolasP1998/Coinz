@@ -1,5 +1,6 @@
 package nikolas.example.com.coinz
 
+import android.arch.lifecycle.Lifecycle
 import android.content.Context
 import android.location.Location
 import android.support.v7.app.AppCompatActivity
@@ -30,7 +31,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import android.content.Intent
-import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import com.google.firebase.auth.FirebaseAuth
@@ -41,7 +41,6 @@ import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import kotlin.collections.HashMap
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -55,8 +54,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
     private lateinit var originLocation: Location
     private lateinit var permissionsManager: PermissionsManager
-    private lateinit var locationEngine: LocationEngine
-    private lateinit var locationLayerPlugin: LocationLayerPlugin
+    private  var locationEngine: LocationEngine?=null
+    private  var locationLayerPlugin: LocationLayerPlugin?=null
     val arg_for_download = DownloadCompleteRunner
     val link = DownloadFileTask(arg_for_download)
     var db: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -74,6 +73,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
 
         super.onCreate(savedInstanceState)
+        
+
 
 
         val uid=FirebaseAuth.getInstance().uid
@@ -118,31 +119,63 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             downloadDate = settings.getString("lastDownloadDate", "")
             val currentDate = getCurrentDateTime().toString("yyyy/MM/dd")
             if (downloadDate != currentDate) {
+                println("newDay")
                 downloadDate = currentDate
                 link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
-                db.collection("$userid").get().addOnSuccessListener(){
-                    numCollectedCoins=it.size()
-                    if (numCollectedCoins>0) { // user collected some coins , proceed to award gold
-                        var dailyGold = 0
-                        var collectedCoins = ArrayList<Pair<String, Int>>()
-                        it.forEach() {
+                val editor = settings.edit()
+                editor.putString("lastDownloadDate", downloadDate)
+                //Apply the edits!
+                editor.apply()
 
-                            var pair = Pair<String, Int>(it.getString("coinid")!!, (it.getDouble("gold")!!.roundToInt()))
-                            collectedCoins.add(pair)
-
-
-                        }
-                        collectedCoins = sortListPairDesc(collectedCoins)
-                        var numDepositedCoins = min(25, numCollectedCoins)
-                        println("deposited coins:$numDepositedCoins")
-                        for (i in 1..numDepositedCoins) {
-                            dailyGold += collectedCoins.get(i-1).second
-
-
-                        }
-                        println("gold for the day:$dailyGold")
+                db.collection("userData").document("$username").get().addOnSuccessListener {
+                    var collectedCoins=it.get("collectedCoins")
+                     if (collectedCoins == null) {
+                        //no coins collected , return
+                         numCollectedCoins=0
                     }
+                    else {
+                         collectedCoins=collectedCoins as ArrayList<String>
+                         numCollectedCoins=collectedCoins.size
+                     }
+                    db.collection("$userid").get().addOnSuccessListener(){
+
+                        if (numCollectedCoins>0) {// user collected some coins , proceed to award gold
+
+                            var dailyGold = 0
+                            var collectedCoins = ArrayList<Pair<String, Int>>()
+                            it.forEach() {
+                                var collectedCoinId=it.getString("coinid")!!
+                                if (!(collectedCoinId.startsWith("RECIEVED"))){
+                                    var pair = Pair<String, Int>(collectedCoinId!!, (it.getDouble("gold")!!.roundToInt()))
+                                    collectedCoins.add(pair)
+                                }
+                                else{
+                                    dailyGold=dailyGold+it.getDouble("gold")!!.roundToInt()
+                                }
+
+
+                            }
+                            collectedCoins = sortListPairDesc(collectedCoins)
+                            var numDepositedCoins = min(25, numCollectedCoins)
+                            println("deposited coins:$numDepositedCoins")
+                            for (i in 1..numDepositedCoins) {
+                                dailyGold += collectedCoins.get(i-1).second
+
+
+                            }
+                            println("gold for the day:$dailyGold")
+                            db.collection("userData").document("$username").get().addOnSuccessListener {
+                                var totalGold=it.getDouble("totalGold")!!.roundToInt()
+                                totalGold=totalGold+dailyGold
+                                it.reference.update("totalGold",totalGold)
+
+                            }
+
+                        }
+                    }
+
                 }
+
                 //update firebase
 
 
@@ -244,30 +277,33 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationEngine() {
         locationEngine = LocationEngineProvider(this).obtainBestLocationEngineAvailable()
-        locationEngine.apply {
+        locationEngine?.apply {
             interval = 5000 // preferably every 5 seconds
             fastestInterval = 1000 // at most every second
             priority = LocationEnginePriority.HIGH_ACCURACY
             activate()
         }
-        val lastLocation = locationEngine.lastLocation
+        val lastLocation = locationEngine?.lastLocation
         if (lastLocation != null) {
             originLocation = lastLocation
             setCameraPosition(lastLocation)
-        } else { locationEngine.addLocationEngineListener(this) }
+        } else { locationEngine?.addLocationEngineListener(this) }
     }
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationLayer() {
+
         if (mapView == null) {Log.d(tag, "mapView is null") }
         else {
             if (map == null) {Log.d(tag,"map is null") }
             else {
                 locationLayerPlugin = LocationLayerPlugin(mapView!!,map!!,locationEngine)
-                locationLayerPlugin.apply {
+                locationLayerPlugin?.apply {
                     setLocationLayerEnabled(true)
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
+                    var lifecycle :Lifecycle=getLifecycle()
+                    lifecycle.addObserver(this)
                 }
             }
         }
@@ -336,7 +372,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     @SuppressWarnings("MissingPermission")
     override fun onConnected() {
         Log.d(tag, "[onConnected] requesting location updates")
-        locationEngine.requestLocationUpdates()
+        locationEngine?.requestLocationUpdates()
     }
 
     override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {
@@ -361,19 +397,30 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     override fun onStart() {
         super.onStart()
         mapView?.onStart()
-        //Restore preferences
-        val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+        if (locationEngine != null) {
 
-        // use "" as the default value (this might be the first time the app is run)
-        downloadDate = settings.getString("lastDownloadDate","")
+            try {
+                locationEngine?.requestLocationUpdates();
+            } catch (ignored: SecurityException) { }
+            locationEngine?.addLocationEngineListener(this);
+            //Restore preferences
+            val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
 
-        //Write a message to "logcat" (for debugging purposes)
-        Log.d(tag, "[onStart] Recalled lastDownloadDate is '$downloadDate'")
+            // use "" as the default value (this might be the first time the app is run)
+            downloadDate = settings.getString("lastDownloadDate", "")
+
+            //Write a message to "logcat" (for debugging purposes)
+            Log.d(tag, "[onStart] Recalled lastDownloadDate is '$downloadDate'")
+        }
     }
 
     override fun onStop() {
         super.onStop()
         mapView?.onStop()
+        if(locationEngine != null){
+            locationEngine?.removeLocationEngineListener(this);
+            locationEngine?.removeLocationUpdates();
+        }
         Log.d(tag,"[onStop] Storing lastDownloadDate of $downloadDate")
 
         // All objects are from android.context.Context
@@ -403,6 +450,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
     override fun onDestroy() {
         super.onDestroy()
+        println("DESTROY")
         mapView?.onDestroy()
     }
 
