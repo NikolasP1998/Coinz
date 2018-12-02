@@ -4,7 +4,6 @@ import android.content.Context
 import android.location.Location
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.util.Log
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
@@ -13,7 +12,6 @@ import com.mapbox.android.core.location.LocationEngineProvider
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
 import com.mapbox.geojson.FeatureCollection
-import com.mapbox.geojson.GeoJson
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.annotations.Icon
@@ -32,18 +30,18 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import android.content.Intent
-import android.graphics.Color
-import android.os.CountDownTimer
 import android.os.Handler
 import android.view.Menu
-import android.view.MenuInflater
 import android.view.MenuItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.collections.ArrayList
 import android.widget.Toast
-import kotlin.concurrent.timer
+import kotlinx.android.synthetic.main.activity_main.*
+import org.json.JSONObject
+import kotlin.collections.HashMap
+import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListener, PermissionsListener {
 
@@ -59,13 +57,16 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     private lateinit var locationLayerPlugin: LocationLayerPlugin
     val arg_for_download = DownloadCompleteRunner
     val link = DownloadFileTask(arg_for_download)
-    var handler:Handler= Handler()
     var db: FirebaseFirestore = FirebaseFirestore.getInstance()
     // variables for markers declared below
     private lateinit var markers: ArrayList<MarkerOptions>
     private lateinit var markersList: ArrayList<Marker>
     private lateinit var user: FirebaseUser
     private var numCollectedCoins = 0
+    private var rates = HashMap<String,Double>()
+    private var username:String?=null
+    private  var coinInd:ArrayList<String>?=ArrayList()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -86,15 +87,21 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         }
         else {
             setContentView(R.layout.activity_main)
-
-            val date = getCurrentDateTime()
-            downloadDate = date.toString("yyyy/MM/dd")
-            link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
-            
+            setSupportActionBar(my_toolbar)
 
 
-            //setSupportActionBar(toolbar)
             user = FirebaseAuth.getInstance()?.currentUser!!
+            var userid = user.uid
+            //fetch username to access correct firebase directory
+            db.collection("usernames").document("$userid").get().addOnSuccessListener {
+
+                username=it.getString("username")
+            }
+
+
+
+
+
 
 
 
@@ -104,11 +111,22 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
             mapView?.onCreate(savedInstanceState)
             mapView?.getMapAsync(this)
+            // use "" as the default value (this might be the first time the app is run)
+            val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
+            downloadDate = settings.getString("lastDownloadDate", "")
+            val currentDate = getCurrentDateTime().toString("yyyy/MM/dd")
+            if (downloadDate != currentDate) {
+                downloadDate = currentDate
+                link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
+                //update firebase
+                //TIODOODI0PJKODJOIJJMFOVIOJJXOVJP
 
 
-
+            }
         }
+
     }
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater=menuInflater
@@ -153,7 +171,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             // Make location information available
             enableLocation()
             markers = viewMarkers()
-            var userid = user?.uid
+
+
+
+            var userid=user.uid
             db?.collection("$userid")?.get()?.addOnSuccessListener {
                 val markerIds = markers.map { marker -> marker.title } as ArrayList<String>
 
@@ -161,12 +182,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                 println("collected coins:$numCollectedCoins")
                 it.forEach {
                     var id = it.getString("coinid")
-                    println("query coin id :$id")
                     if (markerIds.contains(id)) {//coin already collected , remove marker
                         //map?.removeMarker()
-                        println("before:${markers.size} ")
                         markers.removeAt(markerIds.indexOf(id))
-                        println("after:${markers.size} ")
 
                         markerIds.remove(id)
 
@@ -191,7 +209,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             Log.d(tag, "Permissions are granted")
             initialiseLocationEngine()
             initialiseLocationLayer()
-            println("20")
         } else {
             Log.d(tag, "Permissions are not granted")
             permissionsManager = PermissionsManager(this)
@@ -201,7 +218,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationEngine() {
-        println("21")
         locationEngine = LocationEngineProvider(this).obtainBestLocationEngineAvailable()
         locationEngine.apply {
             interval = 5000 // preferably every 5 seconds
@@ -247,13 +263,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             for (m in markers){
                 var markerPos =m.position
                 if (userLoc.distanceTo(markerPos)<=25) {
-                    var id =m.title
+                    var id =coinInd?.get(m.title.toInt())
                     var coinVal=m.snippet.substringAfter(": ").toDouble()
                     var curr=m.snippet.substringBefore(":")
-                    var coinCollected=Coin(id,coinVal,curr)
+                    var gold=(coinVal*rates.get(curr)!!).roundToInt()
+                    var coinCollected=Coin(id!!,coinVal,curr,gold)
                     var userid=user?.uid
                     numCollectedCoins=numCollectedCoins+1
-                    println("updated collected coins:$numCollectedCoins")
 
                     db?.collection("$userid")?.document(id)?.set(coinCollected)?.addOnSuccessListener {
 
@@ -277,6 +293,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
                     }?.addOnFailureListener{
                         exception: java.lang.Exception -> Toast.makeText(this,exception.toString(), Toast.LENGTH_LONG).show()
+
+                    }
+                    db.collection("userData")?.document("$username").get().addOnSuccessListener {
+                        var collectedCoins =it.get("collectedCoins") as ArrayList<String>?
+                        collectedCoins?.add(id)
+                        it.reference.update("collectedCoins",collectedCoins)
 
                     }
                 }
@@ -376,7 +398,23 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     fun viewMarkers() : ArrayList<MarkerOptions> {
         val list = ArrayList<MarkerOptions>()
         var str = File("/data/data/nikolas.example.com.coinz/files/coinzmap.geojson").readText(Charsets.UTF_8)
+        var ratesStr =JSONObject(str).getJSONObject("rates")
+        var shilRate=ratesStr.getString("SHIL").toDouble()
+        var dolRate=ratesStr.getString("DOLR").toDouble()
+        var quidRate=ratesStr.getString("QUID").toDouble()
+        var penyRate=ratesStr.getString("PENY").toDouble()
+        rates.put("SHIL",shilRate)
+        rates.put("DOLR",dolRate)
+        rates.put("QUID",quidRate)
+        rates.put("PENY",penyRate)
+        println("rates updated")
+        db.collection("userData").document("$username").update("latestRates",rates).addOnSuccessListener {
+            println("rates updated")
+        }
         var json = FeatureCollection.fromJson(str).features()
+        //index coins from 1 to 50 , to allow for use of "magic wand" bonus feature
+        //to do this we add the marker ids into an arrayList , the position of the id in the list is the index
+
         json?.forEach {
             var temp = it.geometry()!!.toJson()
             var p = Point.fromJson(temp)
@@ -388,8 +426,14 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             var currency = prop.get("currency").asString
             var color = prop.get("marker-color").asString
             var id = prop.get("id").asString
+            coinInd?.add(id)
+
+
+            var i=coinInd!!.indexOf(id)
+
             var value = prop.get("value").asString
-            var mark = MarkerOptions().title(id).snippet(currency + ": $value").position(x).icon(findIcon(currency))
+
+            var mark = MarkerOptions().title(i.toString()).snippet(currency + ": $value").position(x).icon(findIcon(currency))
             list.add(mark)
         }
 
@@ -419,9 +463,13 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             startActivity(intent)
         }
     }
+    fun sortListPairDesc(list: List<Pair<String, Int>>): List<Pair<String, Int>> {
+        val result = list.sortedWith(compareBy({ it.second }, { it.first }))
+        return result
+    }
 
 
 
 }
 
-class Coin(val coinid:String,val coinvalue:Double,val curr: String)
+class Coin(val coinid:String,val coinvalue:Double,val curr: String, val gold:Int)
