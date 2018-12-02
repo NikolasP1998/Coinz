@@ -41,6 +41,8 @@ import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import kotlin.collections.HashMap
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListener, PermissionsListener {
@@ -118,8 +120,31 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             if (downloadDate != currentDate) {
                 downloadDate = currentDate
                 link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
+                db.collection("$userid").get().addOnSuccessListener(){
+                    numCollectedCoins=it.size()
+                    if (numCollectedCoins>0) { // user collected some coins , proceed to award gold
+                        var dailyGold = 0
+                        var collectedCoins = ArrayList<Pair<String, Int>>()
+                        it.forEach() {
+
+                            var pair = Pair<String, Int>(it.getString("coinid")!!, (it.getDouble("gold")!!.roundToInt()))
+                            collectedCoins.add(pair)
+
+
+                        }
+                        collectedCoins = sortListPairDesc(collectedCoins)
+                        var numDepositedCoins = min(25, numCollectedCoins)
+                        println("deposited coins:$numDepositedCoins")
+                        for (i in 1..numDepositedCoins) {
+                            dailyGold += collectedCoins.get(i-1).second
+
+
+                        }
+                        println("gold for the day:$dailyGold")
+                    }
+                }
                 //update firebase
-                //TIODOODI0PJKODJOIJJMFOVIOJJXOVJP
+
 
 
             }
@@ -167,7 +192,6 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             // Set user interface options
             map?.uiSettings?.isCompassEnabled = true
             map?.uiSettings?.isZoomControlsEnabled = true
-            println("13")
             // Make location information available
             enableLocation()
             markers = viewMarkers()
@@ -182,11 +206,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                 println("collected coins:$numCollectedCoins")
                 it.forEach {
                     var id = it.getString("coinid")
-                    if (markerIds.contains(id)) {//coin already collected , remove marker
+                    var i =coinInd?.indexOf(id).toString()
+                    if (markerIds.contains(i)) {//coin already collected , remove marker
                         //map?.removeMarker()
-                        markers.removeAt(markerIds.indexOf(id))
+                        markers.removeAt(markerIds.indexOf(i))
 
-                        markerIds.remove(id)
+                        markerIds.remove(i)
 
                         Log.d("MarkerRemoval", "Removed marker $id")
 
@@ -270,6 +295,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                     var coinCollected=Coin(id!!,coinVal,curr,gold)
                     var userid=user?.uid
                     numCollectedCoins=numCollectedCoins+1
+
 
                     db?.collection("$userid")?.document(id)?.set(coinCollected)?.addOnSuccessListener {
 
@@ -463,9 +489,9 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             startActivity(intent)
         }
     }
-    fun sortListPairDesc(list: List<Pair<String, Int>>): List<Pair<String, Int>> {
-        val result = list.sortedWith(compareBy({ it.second }, { it.first }))
-        return result
+    fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
+        val result = ArrayList(list.sortedWith(compareBy({ it.second })))
+        return (result  )
     }
 
 
