@@ -67,6 +67,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     private var rates = HashMap<String,Double>()
     private var username:String?=null
     private  var coinInd:ArrayList<String>?=ArrayList()
+    var mAuth:FirebaseAuth?=null
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,8 +78,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
 
 
-
-        val uid=FirebaseAuth.getInstance().uid
+         mAuth=FirebaseAuth.getInstance()
+         var uid=mAuth?.uid
         Log.d("Login","$uid")
         // if not logged in , return to register screen
         if (uid==null) {
@@ -196,7 +198,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item?.itemId){
             R.id.action_friends->{
-                Toast.makeText(this,"friends", Toast.LENGTH_LONG).show()
+                val intent = Intent(this, FriendsActivity::class.java)
+                Log.d("MainActivity","signed out succesfully")
+
+                startActivity(intent)
                 return true
             }
             R.id.action_lead->{
@@ -207,6 +212,19 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                 Toast.makeText(this,"Goal", Toast.LENGTH_LONG).show()
                 return true
             }
+            R.id.action_signout->{
+                mAuth?.signOut()
+                val intent = Intent(this, LoginActivity::class.java)
+                Log.d("MainActivity","signed out succesfully")
+
+                startActivity(intent)
+                return true
+            }
+            R.id.action_wand->{
+                Toast.makeText(this,"wand", Toast.LENGTH_LONG).show()
+                return true
+            }
+
             else->{
                 return super.onOptionsItemSelected(item)
             }
@@ -525,18 +543,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         return IconFactory.getInstance(this).fromResource(id)
 
     }
-    private fun verifyUserIsLoggedIn() {
-        val uid=FirebaseAuth.getInstance().uid
-        Log.d("Login","$uid")
-        // if not logged in , return to register screen
-        if (uid==null) {
-            val intent = Intent(this, RegisterActivity::class.java)
-            finish()
-            Log.d("Login2","$intent")
-            //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
-            startActivity(intent)
-        }
-    }
+
+
     fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
         val result = ArrayList(list.sortedWith(compareBy({ it.second })))
         return (result  )
