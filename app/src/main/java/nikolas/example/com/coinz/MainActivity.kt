@@ -2,6 +2,7 @@ package nikolas.example.com.coinz
 
 import android.arch.lifecycle.Lifecycle
 import android.content.Context
+import android.content.DialogInterface
 import android.location.Location
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -31,6 +32,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import android.content.Intent
+import android.support.v7.app.AlertDialog
 import android.view.Menu
 import android.view.MenuItem
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +46,7 @@ import kotlin.collections.HashMap
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListener, PermissionsListener {
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineListener, PermissionsListener {
 
     private val tag = "MainActivity"
     private var mapView: MapView? = null
@@ -54,21 +56,20 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
     private lateinit var originLocation: Location
     private lateinit var permissionsManager: PermissionsManager
-    private  var locationEngine: LocationEngine?=null
-    private  var locationLayerPlugin: LocationLayerPlugin?=null
-    val arg_for_download = DownloadCompleteRunner
-    val link = DownloadFileTask(arg_for_download)
-    var db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private var locationEngine: LocationEngine? = null
+    private var locationLayerPlugin: LocationLayerPlugin? = null
+    private val argForDownload = DownloadCompleteRunner
+    private val link = DownloadFileTask(argForDownload)
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     // variables for markers declared below
     private lateinit var markers: ArrayList<MarkerOptions>
     private lateinit var markersList: ArrayList<Marker>
     private lateinit var user: FirebaseUser
     private var numCollectedCoins = 0
-    private var rates = HashMap<String,Double>()
-    private var username:String?=null
-    private  var coinInd:ArrayList<String>?=ArrayList()
-    var mAuth:FirebaseAuth?=null
-
+    private var rates = HashMap<String, Double>()
+    private var username: String? = null
+    private var coinInd: ArrayList<String>? = ArrayList()
+    private var mAuth: FirebaseAuth? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,38 +79,29 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
 
 
-         mAuth=FirebaseAuth.getInstance()
-         var uid=mAuth?.uid
-        Log.d("Login","$uid")
+        mAuth = FirebaseAuth.getInstance()
+        val uid = mAuth?.uid
+        Log.d("Login", "$uid")
         // if not logged in , return to register screen
-        if (uid==null) {
+        if (uid == null) {
             val intent = Intent(this, RegisterActivity::class.java)
             //finish()
             Log.d("Login2", "$intent")
             //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
             startActivity(intent)
 
-        }
-        else {
+        } else {
             setContentView(R.layout.activity_main)
             setSupportActionBar(my_toolbar)
 
 
             user = FirebaseAuth.getInstance()?.currentUser!!
-            var userid = user.uid
+            val userid = user.uid
             //fetch username to access correct firebase directory
-            db.collection("usernames").document("$userid").get().addOnSuccessListener {
+            db.collection("usernames").document(userid).get().addOnSuccessListener {
 
-                username=it.getString("username")
+                username = it.getString("username")
             }
-
-
-
-
-
-
-
-
 
             Mapbox.getInstance(applicationContext, getString(R.string.access_token))
             mapView = findViewById(R.id.mapboxMapView)
@@ -120,6 +112,8 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
             downloadDate = settings.getString("lastDownloadDate", "")
             val currentDate = getCurrentDateTime().toString("yyyy/MM/dd")
+
+
             if (downloadDate != currentDate) {
                 println("newDay")
                 downloadDate = currentDate
@@ -129,56 +123,111 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
                 //Apply the edits!
                 editor.apply()
 
-                db.collection("userData").document("$username").get().addOnSuccessListener {
-                    var collectedCoins=it.get("collectedCoins")
-                     if (collectedCoins == null) {
-                        //no coins collected , return
-                         numCollectedCoins=0
-                    }
-                    else {
-                         collectedCoins=collectedCoins as ArrayList<String>
-                         numCollectedCoins=collectedCoins.size
-                     }
-                    db.collection("$userid").get().addOnSuccessListener(){
-
-                        if (numCollectedCoins>0) {// user collected some coins , proceed to award gold
-
-                            var dailyGold = 0
-                            var collectedCoins = ArrayList<Pair<String, Int>>()
-                            it.forEach() {
-                                var collectedCoinId=it.getString("coinid")!!
-                                if (!(collectedCoinId.startsWith("RECIEVED"))){
-                                    var pair = Pair<String, Int>(collectedCoinId!!, (it.getDouble("gold")!!.roundToInt()))
-                                    collectedCoins.add(pair)
-                                }
-                                else{
-                                    dailyGold=dailyGold+it.getDouble("gold")!!.roundToInt()
-                                }
+                db.collection(userid).get().addOnSuccessListener {
+                val numCoins=it.size() // total number of coins, both collected and recieved
 
 
+
+
+
+
+
+
+                    if (numCoins > 0) {// user collected some coins , proceed to award gold
+                        @Suppress("UNCHECKED_CAST")
+                        db.collection("UserData").document(userid).get().addOnSuccessListener {
+                            val sentCoins=it.get("sentCoins") as ArrayList<String>?
+                            if (sentCoins!=null){
+                                numCollectedCoins=sentCoins.size
                             }
-                            collectedCoins = sortListPairDesc(collectedCoins)
-                            var numDepositedCoins = min(25, numCollectedCoins)
-                            println("deposited coins:$numDepositedCoins")
-                            for (i in 1..numDepositedCoins) {
-                                dailyGold += collectedCoins.get(i-1).second
-
-
-                            }
-                            println("gold for the day:$dailyGold")
-                            db.collection("userData").document("$username").get().addOnSuccessListener {
-                                var totalGold=it.getDouble("totalGold")!!.roundToInt()
-                                totalGold=totalGold+dailyGold
-                                it.reference.update("totalGold",totalGold)
-
+                            else{
+                                numCollectedCoins=0
                             }
 
                         }
-                    }
+                        var dailyGold = 0
+                        var collectedCoinsPairs = ArrayList<Pair<String, Int>>()
+                        it.forEach {
+                            val collectedCoinId = it.getString("coinid")!!
+                            if (!(collectedCoinId.startsWith("RECIEVED"))) {// coin collected , add to tally and list of pairs
+                                numCollectedCoins++
+                                val pair = Pair(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
+                                collectedCoinsPairs.add(pair)
+                            } else { //recieved coin , add gold
+                                dailyGold += it.getDouble("gold")!!.roundToInt()
+                            }
+                            it.reference.delete()
 
+
+                        }
+                        var targetCoinsNo=0
+                        var multiplier=0.0
+                        var goalAchieved=false
+                        db.collection("userData").document("$username").get().addOnSuccessListener {
+                            val dailyGoal = it.getString("dailyGoal")!!
+                            val nextDailyGoal=it.getString("nextDailyGoal")
+                            it.reference.update("dailyGoal",nextDailyGoal)
+                            when (dailyGoal){
+                                "noGoal"->{
+                                    goalAchieved=true
+                                    multiplier=1.0
+
+                                }
+                                "medium"-> {
+                                    targetCoinsNo = 25
+                                    if (numCollectedCoins >= targetCoinsNo) {
+                                        goalAchieved = true
+                                        multiplier = 1.5
+                                    }
+                                }
+
+                                    "hard"->{
+                                        targetCoinsNo = 50
+                                        if (numCollectedCoins >= targetCoinsNo) {
+                                            goalAchieved = true
+                                            multiplier = 2.0
+                                    }
+                                }
+
+                            }
+                            if (goalAchieved) {
+                                collectedCoinsPairs = sortListPair(collectedCoinsPairs)
+                                val numDepositedCoins = min(25, numCollectedCoins)
+                                println("deposited coins:$numDepositedCoins")
+                                for (i in 1..numDepositedCoins) {
+                                    dailyGold += collectedCoinsPairs[i - 1].second
+
+
+                                }
+                                //multiply by corresponding multiplier
+                                dailyGold=(dailyGold*multiplier).roundToInt()
+                            }
+                            else{ // goal not achieved
+                                dailyGold=0
+                            }
+                            println("gold for the day:$dailyGold")
+                            val builder = AlertDialog.Builder(this)
+                            builder.setTitle("Day summary")
+                            val msg:String
+                            if (goalAchieved)               { msg ="Goal achieved\n Coins collected:$numCollectedCoins"}
+                            else                            { msg="Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"}
+                            builder.setMessage("$msg \n Daily gold=$dailyGold")
+                            builder.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
+                            builder.show()
+                            db.collection("userData").document("$username").get().addOnSuccessListener {
+                                var totalGold = it.getDouble("totalGold")!!.roundToInt()
+                                totalGold +=  dailyGold
+                                it.reference.update("totalGold", totalGold)
+                                it.reference.update("sentCoins", ArrayList<String>())
+
+
+                            }
+                        }
+
+
+                    }
                 }
 
-                //update firebase
 
 
 
@@ -189,50 +238,58 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        val inflater=menuInflater
-        inflater.inflate(R.menu.menu_main,menu)
+        val inflater = menuInflater
+        inflater.inflate(R.menu.menu_main, menu)
 
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        when (item?.itemId){
-            R.id.action_friends->{
+        when (item?.itemId) {
+            R.id.action_friends -> {
                 val intent = Intent(this, FriendsActivity::class.java)
-                Log.d("MainActivity","signed out succesfully")
+                Log.d("MainActivity", "signed out succesfully")
 
                 startActivity(intent)
                 return true
             }
-            R.id.action_lead->{
-                Toast.makeText(this,"lead", Toast.LENGTH_LONG).show()
+            R.id.action_lead -> {
+                Toast.makeText(this, "lead", Toast.LENGTH_LONG).show()
                 return true
             }
-            R.id.action_goal->{
-                Toast.makeText(this,"Goal", Toast.LENGTH_LONG).show()
+            R.id.action_goal -> {
+                val builder = AlertDialog.Builder(this)
+                builder.setTitle("Day summary")
+                builder.setMessage("test message")
+                builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int -> }
+                builder.setNeutralButton("Medium") { _: DialogInterface, _: Int -> }
+                builder.setPositiveButton("Hard") { _: DialogInterface, _: Int -> }
+                
+                builder.show()
+
                 return true
             }
-            R.id.action_signout->{
+            R.id.action_signout -> {
                 mAuth?.signOut()
                 val intent = Intent(this, LoginActivity::class.java)
-                Log.d("MainActivity","signed out succesfully")
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                Log.d("MainActivity", "signed out succesfully")
 
                 startActivity(intent)
                 return true
             }
-            R.id.action_wand->{
-                Toast.makeText(this,"wand", Toast.LENGTH_LONG).show()
+            R.id.action_wand -> {
+                Toast.makeText(this, "wand", Toast.LENGTH_LONG).show()
                 return true
             }
 
-            else->{
+            else -> {
                 return super.onOptionsItemSelected(item)
             }
 
         }
 
     }
-
 
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
@@ -248,16 +305,15 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
             markers = viewMarkers()
 
 
-
-            var userid=user.uid
-            db?.collection("$userid")?.get()?.addOnSuccessListener {
+            val userid = user.uid
+            db.collection(userid).get().addOnSuccessListener {
                 val markerIds = markers.map { marker -> marker.title } as ArrayList<String>
 
                 numCollectedCoins = it.size()
                 println("collected coins:$numCollectedCoins")
                 it.forEach {
-                    var id = it.getString("coinid")
-                    var i =coinInd?.indexOf(id).toString()
+                    val id = it.getString("coinid")
+                    val i = coinInd?.indexOf(id).toString()
                     if (markerIds.contains(i)) {//coin already collected , remove marker
                         //map?.removeMarker()
                         markers.removeAt(markerIds.indexOf(i))
@@ -305,22 +361,26 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         if (lastLocation != null) {
             originLocation = lastLocation
             setCameraPosition(lastLocation)
-        } else { locationEngine?.addLocationEngineListener(this) }
+        } else {
+            locationEngine?.addLocationEngineListener(this)
+        }
     }
 
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationLayer() {
 
-        if (mapView == null) {Log.d(tag, "mapView is null") }
-        else {
-            if (map == null) {Log.d(tag,"map is null") }
-            else {
-                locationLayerPlugin = LocationLayerPlugin(mapView!!,map!!,locationEngine)
+        if (mapView == null) {
+            Log.d(tag, "mapView is null")
+        } else {
+            if (map == null) {
+                Log.d(tag, "map is null")
+            } else {
+                locationLayerPlugin = LocationLayerPlugin(mapView!!, map!!, locationEngine)
                 locationLayerPlugin?.apply {
                     setLocationLayerEnabled(true)
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
-                    var lifecycle :Lifecycle=getLifecycle()
+                    val lifecycle: Lifecycle = lifecycle
                     lifecycle.addObserver(this)
                 }
             }
@@ -329,7 +389,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
 
     private fun setCameraPosition(location: Location) {
         val latlng = LatLng(location.latitude, location.longitude)
-        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude),13.0))
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latlng, 13.0))
     }
 
     override fun onLocationChanged(location: Location?) {
@@ -338,49 +398,40 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         } else {
             originLocation = location
             setCameraPosition(originLocation)
-            var userLoc=LatLng(location.latitude,location.longitude)
-            for (m in markers){
-                var markerPos =m.position
-                if (userLoc.distanceTo(markerPos)<=25) {
-                    var id =coinInd?.get(m.title.toInt())
-                    var coinVal=m.snippet.substringAfter(": ").toDouble()
-                    var curr=m.snippet.substringBefore(":")
-                    var gold=(coinVal*rates.get(curr)!!).roundToInt()
-                    var coinCollected=Coin(id!!,coinVal,curr,gold)
-                    var userid=user?.uid
-                    numCollectedCoins=numCollectedCoins+1
+            val userLoc = LatLng(location.latitude, location.longitude)
+            for (m in markers) {
+                val markerPos = m.position
+                if (userLoc.distanceTo(markerPos) <= 25) {
+                    val id = coinInd?.get(m.title.toInt())
+                    val coinVal = m.snippet.substringAfter(":").toDouble()
+                    val curr = m.snippet.substringBefore(":")
+                    val gold = (coinVal * rates[curr]!!).roundToInt()
+                    val coinCollected = Coin(id!!, coinVal, curr, gold)
+                    val userid = user.uid
+                    numCollectedCoins ++
 
 
-                    db?.collection("$userid")?.document(id)?.set(coinCollected)?.addOnSuccessListener {
+                    db.collection(userid).document(id).set(coinCollected).addOnSuccessListener {
 
 
-
-
-
-                        Toast.makeText(this,"Coin collected", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Coin collected", Toast.LENGTH_LONG).show()
                         markers.remove(m)
 
                         //update map
-                        mapView?.getMapAsync{_->
-                            markersList.forEach{
-                                if (it.title==m.title){
-                                    // numCollectedCoins=collected!!.size
+                        mapView?.getMapAsync { _ ->
+                            markersList.forEach {
+                                if (it.title == m.title) {
                                     map?.removeMarker(it)
                                 }
                             }
                         }
 
 
-                    }?.addOnFailureListener{
-                        exception: java.lang.Exception -> Toast.makeText(this,exception.toString(), Toast.LENGTH_LONG).show()
+                    }.addOnFailureListener { exception: java.lang.Exception ->
+                        Toast.makeText(this, exception.toString(), Toast.LENGTH_LONG).show()
 
                     }
-                    db.collection("userData")?.document("$username").get().addOnSuccessListener {
-                        var collectedCoins =it.get("collectedCoins") as ArrayList<String>?
-                        collectedCoins?.add(id)
-                        it.reference.update("collectedCoins",collectedCoins)
 
-                    }
                 }
 
             }
@@ -394,7 +445,7 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     }
 
     override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {
-        Log.d(tag,"Permissions: $permissionsToExplain")
+        Log.d(tag, "Permissions: $permissionsToExplain")
         //Present popup message or dialog
     }
 
@@ -418,9 +469,10 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         if (locationEngine != null) {
 
             try {
-                locationEngine?.requestLocationUpdates();
-            } catch (ignored: SecurityException) { }
-            locationEngine?.addLocationEngineListener(this);
+                locationEngine?.requestLocationUpdates()
+            } catch (ignored: SecurityException) {
+            }
+            locationEngine?.addLocationEngineListener(this)
             //Restore preferences
             val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
 
@@ -435,11 +487,11 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     override fun onStop() {
         super.onStop()
         mapView?.onStop()
-        if(locationEngine != null){
-            locationEngine?.removeLocationEngineListener(this);
-            locationEngine?.removeLocationUpdates();
+        if (locationEngine != null) {
+            locationEngine?.removeLocationEngineListener(this)
+            locationEngine?.removeLocationUpdates()
         }
-        Log.d(tag,"[onStop] Storing lastDownloadDate of $downloadDate")
+        Log.d(tag, "[onStop] Storing lastDownloadDate of $downloadDate")
 
         // All objects are from android.context.Context
         val settings = getSharedPreferences(preferencesFile, Context.MODE_PRIVATE)
@@ -477,63 +529,61 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
         mapView?.onSaveInstanceState()
     }*/
 
-    fun Date.toString(format: String, locale: Locale = Locale.getDefault()): String {
+    private fun Date.toString(format: String, locale: Locale = Locale.getDefault()): String {
         val formatter = SimpleDateFormat(format, locale)
         return formatter.format(this)
     }
 
-    fun getCurrentDateTime(): Date {
+    private fun getCurrentDateTime(): Date {
         return Calendar.getInstance().time
     }
 
 
-    fun viewMarkers() : ArrayList<MarkerOptions> {
+    private fun viewMarkers(): ArrayList<MarkerOptions> {
         val list = ArrayList<MarkerOptions>()
-        var str = File("/data/data/nikolas.example.com.coinz/files/coinzmap.geojson").readText(Charsets.UTF_8)
-        var ratesStr =JSONObject(str).getJSONObject("rates")
-        var shilRate=ratesStr.getString("SHIL").toDouble()
-        var dolRate=ratesStr.getString("DOLR").toDouble()
-        var quidRate=ratesStr.getString("QUID").toDouble()
-        var penyRate=ratesStr.getString("PENY").toDouble()
-        rates.put("SHIL",shilRate)
-        rates.put("DOLR",dolRate)
-        rates.put("QUID",quidRate)
-        rates.put("PENY",penyRate)
+        val str = File("/data/data/nikolas.example.com.coinz/files/coinzmap.geojson").readText(Charsets.UTF_8)
+        val ratesStr = JSONObject(str).getJSONObject("rates")
+        val shilRate = ratesStr.getString("SHIL").toDouble()
+        val dolRate = ratesStr.getString("DOLR").toDouble()
+        val quidRate = ratesStr.getString("QUID").toDouble()
+        val penyRate = ratesStr.getString("PENY").toDouble()
+        rates["SHIL"]=shilRate
+        rates["DOLR"]=dolRate
+        rates["QUID"]= quidRate
+        rates["PENY"]= penyRate
         println("rates updated")
-        db.collection("userData").document("$username").update("latestRates",rates).addOnSuccessListener {
-            println("rates updated")
-        }
-        var json = FeatureCollection.fromJson(str).features()
+
+        val json = FeatureCollection.fromJson(str).features()
         //index coins from 1 to 50 , to allow for use of "magic wand" bonus feature
         //to do this we add the marker ids into an arrayList , the position of the id in the list is the index
 
         json?.forEach {
-            var temp = it.geometry()!!.toJson()
-            var p = Point.fromJson(temp)
-            var long = p.longitude()
-            var lat = p.latitude()
-            var x = LatLng(lat,long)
-            var prop = it.properties()!!
-            var symbol = prop.get("marker-symbol").asString
-            var currency = prop.get("currency").asString
-            var color = prop.get("marker-color").asString
-            var id = prop.get("id").asString
+            val temp = it.geometry()!!.toJson()
+            val p = Point.fromJson(temp)
+            val long = p.longitude()
+            val lat = p.latitude()
+            val x = LatLng(lat, long)
+            val prop = it.properties()!!
+            //var symbol = prop.get("marker-symbol").asString
+            val currency = prop.get("currency").asString
+            //var color = prop.get("marker-color").asString
+            val id = prop.get("id").asString
             coinInd?.add(id)
 
 
-            var i=coinInd!!.indexOf(id)
+            val i = coinInd!!.indexOf(id)
 
-            var value = prop.get("value").asString
+            val value = prop.get("value").asString
 
-            var mark = MarkerOptions().title(i.toString()).snippet(currency + ": $value").position(x).icon(findIcon(currency))
+            val mark = MarkerOptions().title(i.toString()).snippet("$currency:$value").position(x).icon(findIcon(currency))
             list.add(mark)
         }
 
         return list
     }
 
-    fun findIcon(currency: String): Icon {
-        var id = when (currency) {
+  private  fun findIcon(currency: String): Icon {
+        val id = when (currency) {
             "DOLR" -> R.drawable.dolr
             "SHIL" -> R.drawable.shil
             "PENY" -> R.drawable.peny
@@ -545,13 +595,12 @@ class MainActivity : AppCompatActivity(),OnMapReadyCallback, LocationEngineListe
     }
 
 
-    fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
-        val result = ArrayList(list.sortedWith(compareBy({ it.second })))
-        return (result  )
+    private  fun sortListPair(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
+        val result = ArrayList(list.sortedWith(compareBy{ it.second }))
+        return (result)
     }
-
 
 
 }
 
-class Coin(val coinid:String,val coinvalue:Double,val curr: String, val gold:Int)
+data class Coin(val coinid: String, val coinvalue: Double, val curr: String, val gold: Int)

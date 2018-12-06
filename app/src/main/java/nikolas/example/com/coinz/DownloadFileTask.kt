@@ -45,6 +45,7 @@ class DownloadFileTask(private val caller : DownloadCompleteListener) : AsyncTas
     }
 
     private fun storeJson(content: String) {
+
         val path = "/data/data/nikolas.example.com.coinz/files/coinzmap.geojson"
         File(path).writeText(content)
     }

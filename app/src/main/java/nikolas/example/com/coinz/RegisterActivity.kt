@@ -9,7 +9,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_register.*
 
-import kotlinx.android.synthetic.main.content_register.*
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -33,10 +32,10 @@ class RegisterActivity : AppCompatActivity() {
                 val db = FirebaseFirestore.getInstance()
                 db.collection("usernames").get().addOnSuccessListener {
                     it.forEach {
-                        var name = it.getString("username")
+                        val name = it.getString("username")
                         Log.d("Register", "name is $name")
                         if (name == username) {
-                            //returns , user is not registered
+                            //returns , username is in use
                             Toast.makeText(this, "username already in use", Toast.LENGTH_SHORT).show()
                             return@addOnSuccessListener
                         }
@@ -84,14 +83,14 @@ class RegisterActivity : AppCompatActivity() {
         val uid =FirebaseAuth.getInstance().uid ?:""
         val username = username_editText_register.text.toString()
         val email =email_edittext_register.text.toString()
-        val user=User(uid,username,email,0.0,HashMap<String,Double>(),ArrayList(),ArrayList() )
-        db.collection("userData")?.document("$username")
+        val user=User(uid,username,email,0.0,ArrayList(),"noGoal","noGoal")
+        db.collection("userData").document(username)
                 .set(user)
                 .addOnSuccessListener {
                     Log.d("Register","user added")
                 }
-        var uname=Username(uid,username)
-        db.collection("usernames")?.document("$uid")
+        val uname=Username(uid,username)
+        db.collection("usernames").document(uid)
 
                 .set(uname)
                 .addOnSuccessListener {
@@ -112,6 +111,6 @@ class RegisterActivity : AppCompatActivity() {
 
 
 
-class User(val uid:String,val username:String,val email:String,val totalGold:Double,var latestRates:HashMap<String,Double>,var collectedCoins:ArrayList<String>,var recievedCoins:ArrayList<String>)
+data class User(val uid:String,val username:String,val email:String,val totalGold:Double,val sentCoins:ArrayList<String>,val dailyGoal:String,val nextDailyGoal:String)
 
-class Username(val uid:String,val username: String)
+data class Username(val uid:String,val username: String)
