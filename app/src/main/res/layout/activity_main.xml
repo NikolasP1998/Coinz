@@ -29,4 +29,126 @@
         android:elevation="4dp"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="303dp"
+        android:layout_height="285dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="140dp"
+        android:layout_marginTop="8dp"
+        android:alpha="0.5"
+        android:background="@android:color/black"
+        android:text="Currency Rates"
+        android:textAlignment="center"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+    <ImageView
+        android:id="@+id/green_rate"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/red_rate"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/blue_rate"
+        app:srcCompat="@drawable/dolr" />
+
+    <ImageView
+        android:id="@+id/blue_rate"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="400dp"
+        app:layout_constraintBottom_toTopOf="@+id/green_rate"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/shil" />
+
+    <ImageView
+        android:id="@+id/red_rate"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="235dp"
+        android:layout_marginStart="5dp"
+        app:layout_constraintBottom_toTopOf="@+id/yellow_rate"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.02"
+        app:layout_constraintStart_toStartOf="@+id/green_rate"
+        app:layout_constraintTop_toBottomOf="@+id/green_rate"
+        app:srcCompat="@drawable/peny" />
+
+    <ImageView
+        android:id="@+id/yellow_rate"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginBottom="3dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/red_rate"
+        app:srcCompat="@drawable/quid" />
+
+    <TextView
+        android:id="@+id/shil_rate"
+        android:layout_width="192dp"
+        android:layout_height="31dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="346dp"
+        android:textColor="@android:color/holo_blue_dark"
+        android:textSize="21sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/blue_rate"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.296" />
+
+    <TextView
+        android:id="@+id/dolr_rate"
+        android:layout_width="192dp"
+        android:layout_height="28dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="15dp"
+        android:layout_marginTop="13dp"
+        android:textColor="@android:color/holo_green_light"
+        android:textSize="21sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/green_rate"
+        app:layout_constraintTop_toBottomOf="@+id/shil_rate"
+        app:layout_constraintVertical_bias="0.053" />
+
+    <TextView
+        android:id="@+id/peny_rate"
+        android:layout_width="192dp"
+        android:layout_height="31dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="15dp"
+        android:textColor="@android:color/holo_red_light"
+        android:textSize="21sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/red_rate"
+        app:layout_constraintTop_toBottomOf="@+id/dolr_rate"
+        app:layout_constraintVertical_bias="0.13" />
+
+    <TextView
+        android:id="@+id/quid_rate"
+        android:layout_width="192dp"
+        android:layout_height="28dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="16dp"
+
+        android:layout_marginTop="10dp"
+        android:textColor="@android:color/holo_orange_light"
+        android:textSize="21sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/yellow_rate"
+        app:layout_constraintTop_toBottomOf="@+id/peny_rate" />
+
+
+
 </android.support.constraint.ConstraintLayout>

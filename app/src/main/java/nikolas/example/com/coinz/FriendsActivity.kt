@@ -2,16 +2,15 @@ package nikolas.example.com.coinz
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.view.LayoutInflater
+import android.view.View
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_friends.*
 import kotlin.math.roundToInt
-
-
-
+import android.view.ViewGroup
+import android.widget.*
+import nikolas.example.com.coinz.R.id.friends_button_sendOne
 
 
 class FriendsActivity : AppCompatActivity() {
@@ -28,9 +27,10 @@ class FriendsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_friends)
         supportActionBar?.title = "Send coins to friends"
 
-        val txtview = findViewById<TextView>(R.id.coin_textView_friends)
         val editText = findViewById<EditText>(R.id.username_editText_friends)
-
+        val spare =findViewById<TextView>(R.id.friends_textView_spare)
+        val listView=findViewById<ListView>(R.id.list_view)
+        var list = mutableListOf<Model>()
 
         val userid = FirebaseAuth.getInstance().uid
         println(userid)
@@ -47,22 +47,27 @@ class FriendsActivity : AppCompatActivity() {
                     val collectedCoinId = it.getString("coinid")!!
                     if (!(collectedCoinId.startsWith("RECIEVED"))) {
                         numCollectedCoins++
+                        if (numCollectedCoins>=25){
+                            list.add(Model(collectedCoinId))
+                        }
                         val pair = Pair<String, Int>(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
                         collectedCoins.add(pair)
                     }
                 }
+                listView.adapter=MyListAdapter(this,R.layout.row,list)
                 collectedCoins = sortListPairDesc(collectedCoins)
-                val mostValuableCoinId=collectedCoins[25]
-               println(mostValuableCoinId)
+
 
                 if (numCollectedCoins > 25) {
                     numSpareChange = numCollectedCoins - 25
+                    val mostValuableCoinId=collectedCoins[25]
+                    println(mostValuableCoinId)
+
 
                 } else {
                     numSpareChange = 0
                 }
-                val display ="number of spare : $numSpareChange "
-                txtview.text =display
+                spare.text="$numSpareChange"
 
 
             }
@@ -100,7 +105,7 @@ class FriendsActivity : AppCompatActivity() {
                             Toast.makeText(this, "username not found", Toast.LENGTH_SHORT).show()
                             return@addOnSuccessListener
                         } else {//send coin
-                            var coinToSendId=collectedCoins[26].first
+                            var coinToSendId=collectedCoins[25].first
                             db.collection("$userid").document(coinToSendId).get().addOnSuccessListener {
                                 //remove from database , add to sent coins
                                 db.collection("userData").document(ownUsername).get().addOnSuccessListener {
@@ -118,10 +123,12 @@ class FriendsActivity : AppCompatActivity() {
 
                                     Toast.makeText(this, "coin sent", Toast.LENGTH_SHORT).show()
                                     numSpareChange--
+                                    spare.text="$numSpareChange"
+                                    collectedCoins.removeAt(25)
+                                    list.removeAt(0)
+                                    listView.adapter=MyListAdapter(this,R.layout.row,list)
 
-                                    //update text box
-                                    val display ="number of spare : $numSpareChange "
-                                    txtview.text =display
+
 
                                 }
 
@@ -143,3 +150,4 @@ class FriendsActivity : AppCompatActivity() {
         return (result  )
     }
 }
+

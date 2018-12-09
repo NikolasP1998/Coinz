@@ -35,6 +35,7 @@ import android.content.Intent
 import android.support.v7.app.AlertDialog
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.TextView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -264,7 +265,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int -> }
                 builder.setNeutralButton("Medium") { _: DialogInterface, _: Int -> }
                 builder.setPositiveButton("Hard") { _: DialogInterface, _: Int -> }
-                
+
                 builder.show()
 
                 return true
@@ -303,6 +304,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             // Make location information available
             enableLocation()
             markers = viewMarkers()
+            val shilrate=findViewById<TextView>(R.id.shil_rate)
+            shilrate.text=rates["SHIL"].toString()
+            val penyrate=findViewById<TextView>(R.id.dolr_rate)
+            penyrate.text=rates["PENY"].toString()
+            val dolrrate=findViewById<TextView>(R.id.quid_rate)
+            dolrrate.text=rates["DOLR"].toString()
+            val quidrate=findViewById<TextView>(R.id.peny_rate)
+            quidrate.text=rates["QUID"].toString()
 
 
             val userid = user.uid
