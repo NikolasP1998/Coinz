@@ -2,15 +2,13 @@ package nikolas.example.com.coinz
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
+
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_friends.*
 import kotlin.math.roundToInt
-import android.view.ViewGroup
+
 import android.widget.*
-import nikolas.example.com.coinz.R.id.friends_button_sendOne
 
 
 class FriendsActivity : AppCompatActivity() {
@@ -27,10 +25,12 @@ class FriendsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_friends)
         supportActionBar?.title = "Send coins to friends"
 
+
         val editText = findViewById<EditText>(R.id.username_editText_friends)
         val spare =findViewById<TextView>(R.id.friends_textView_spare)
+        spare.text="Number of space change coins:0"
         val listView=findViewById<ListView>(R.id.list_view)
-        var list = mutableListOf<Model>()
+        val list = mutableListOf<Model>()
 
         val userid = FirebaseAuth.getInstance().uid
         println(userid)
@@ -48,7 +48,11 @@ class FriendsActivity : AppCompatActivity() {
                     if (!(collectedCoinId.startsWith("RECIEVED"))) {
                         numCollectedCoins++
                         if (numCollectedCoins>=25){
-                            list.add(Model(collectedCoinId))
+                            val curr = it.getString("curr")!!
+                            val value =it.getDouble("coinvalue")!!
+                            val coinData = "$curr   ${value.toString()}"
+
+                            list.add(Model(coinData))
                         }
                         val pair = Pair<String, Int>(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
                         collectedCoins.add(pair)
@@ -60,14 +64,13 @@ class FriendsActivity : AppCompatActivity() {
 
                 if (numCollectedCoins > 25) {
                     numSpareChange = numCollectedCoins - 25
-                    val mostValuableCoinId=collectedCoins[25]
-                    println(mostValuableCoinId)
+
 
 
                 } else {
                     numSpareChange = 0
                 }
-                spare.text="$numSpareChange"
+                spare.text="Number of space change coins:$numSpareChange"
 
 
             }
@@ -123,7 +126,7 @@ class FriendsActivity : AppCompatActivity() {
 
                                     Toast.makeText(this, "coin sent", Toast.LENGTH_SHORT).show()
                                     numSpareChange--
-                                    spare.text="$numSpareChange"
+                                    spare.text="Number of space change coins:$numSpareChange"
                                     collectedCoins.removeAt(25)
                                     list.removeAt(0)
                                     listView.adapter=MyListAdapter(this,R.layout.row,list)

@@ -17,7 +17,7 @@ class MyListAdapter (var mCtx:Context,var resources:Int,var items:List<Model>)
 
         val textView:TextView=view.findViewById(R.id.tittle)
         var mItems:Model=items[position]
-        textView.text=mItems.tittle
+        textView.text=mItems.coinData
         return view
     }
 }

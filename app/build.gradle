@@ -43,9 +43,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:16.0.4'
     implementation 'com.firebaseui:firebase-ui-auth:4.1.0'
     implementation 'com.google.firebase:firebase-firestore:17.1.1'
-    //implementation 'com.google.firebase:firebase-storage:16.0.4'
-    //implementation 'android.arch.core:runtime:1.1.1'
-    //implementation 'android.arch.core:common:1.1.1'
+
     implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:6.5.0'
     implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-locationlayer:0.5.2'
     implementation 'com.google.android.gms:play-services-location:16.0.0'

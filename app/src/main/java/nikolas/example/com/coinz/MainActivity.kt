@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                 }
 
                             }
-                            if (goalAchieved) {
+                            if (goalAchieved && numCollectedCoins>0)  { // second clause covers case where user recieved coins but didn't collect
                                 collectedCoinsPairs = sortListPair(collectedCoinsPairs)
                                 val numDepositedCoins = min(25, numCollectedCoins)
                                 println("deposited coins:$numDepositedCoins")

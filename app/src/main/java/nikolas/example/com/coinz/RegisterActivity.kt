@@ -23,8 +23,8 @@ class RegisterActivity : AppCompatActivity() {
             val email= email_edittext_register.text.toString()
             val password=password_edittext_register.text.toString()
             val username = username_editText_register.text.toString()
-            if (email.isEmpty()||password.isEmpty()){
-                Toast.makeText(this,"please enter text in email and password",Toast.LENGTH_SHORT).show()
+            if (email.isEmpty()||password.isEmpty()||username.isEmpty()){
+                Toast.makeText(this,"please enter text in all fields",Toast.LENGTH_SHORT).show()
 
                 return@setOnClickListener
             }
@@ -58,7 +58,8 @@ class RegisterActivity : AppCompatActivity() {
                             }
                             .addOnFailureListener{
                                 Log.d("Main:","Failed to create user:${it.message}")
-                                Toast.makeText(this,"failed to create user:${it.message}",Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this,"Failed to create user:${it.message}",Toast.LENGTH_SHORT).show()
+                                println("Failed to create user:${it.message}")
                             }
 
 

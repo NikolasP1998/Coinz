@@ -1,3 +1,3 @@
 package nikolas.example.com.coinz
 
-class Model(val tittle:String)
+class Model(val coinData:String)

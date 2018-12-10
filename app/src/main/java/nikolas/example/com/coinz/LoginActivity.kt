@@ -22,6 +22,10 @@ class LoginActivity:AppCompatActivity() {
         login_button_login.setOnClickListener{
             val email=email_editText_login.text.toString()
             val password=password_editText_login.text.toString()
+            if (email.isEmpty()||password.isEmpty()){
+                Toast.makeText(this,"please enter text in all fields",Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             auth.signInWithEmailAndPassword(email,password)
 
                     .addOnCompleteListener {
