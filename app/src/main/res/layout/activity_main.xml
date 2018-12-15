@@ -32,15 +32,15 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="303dp"
+        android:layout_width="161dp"
         android:layout_height="285dp"
         android:layout_marginBottom="8dp"
-        android:layout_marginStart="140dp"
+        android:layout_marginStart="304dp"
         android:layout_marginTop="8dp"
         android:alpha="0.5"
         android:background="@android:color/black"
-        android:text="Currency Rates"
-        android:textAlignment="center"
+        android:text="RATES"
+        android:textAlignment="viewStart"
         android:textAllCaps="false"
         android:textColor="@android:color/white"
         android:textSize="18sp"
@@ -95,8 +95,8 @@
 
     <TextView
         android:id="@+id/shil_rate"
-        android:layout_width="192dp"
-        android:layout_height="31dp"
+        android:layout_width="65dp"
+        android:layout_height="38dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="12dp"
         android:layout_marginTop="346dp"
@@ -109,8 +109,8 @@
 
     <TextView
         android:id="@+id/dolr_rate"
-        android:layout_width="192dp"
-        android:layout_height="28dp"
+        android:layout_width="61dp"
+        android:layout_height="32dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="15dp"
         android:layout_marginTop="13dp"
@@ -123,8 +123,8 @@
 
     <TextView
         android:id="@+id/peny_rate"
-        android:layout_width="192dp"
-        android:layout_height="31dp"
+        android:layout_width="60dp"
+        android:layout_height="35dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="12dp"
         android:layout_marginTop="15dp"
@@ -137,8 +137,8 @@
 
     <TextView
         android:id="@+id/quid_rate"
-        android:layout_width="192dp"
-        android:layout_height="28dp"
+        android:layout_width="51dp"
+        android:layout_height="31dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="16dp"
 
@@ -149,6 +149,21 @@
         app:layout_constraintEnd_toStartOf="@+id/yellow_rate"
         app:layout_constraintTop_toBottomOf="@+id/peny_rate" />
 
+    <ProgressBar
+        android:id="@+id/main_progressbar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="117dp"
+        android:layout_height="32dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.929" />
 
 
 </android.support.constraint.ConstraintLayout>

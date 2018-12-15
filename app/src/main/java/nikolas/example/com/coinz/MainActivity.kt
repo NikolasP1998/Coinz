@@ -35,6 +35,8 @@ import android.content.Intent
 import android.support.v7.app.AlertDialog
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.TextView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -71,6 +73,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var username: String? = null
     private var coinInd: ArrayList<String>? = ArrayList()
     private var mAuth: FirebaseAuth? = null
+    private var progress_bar:ProgressBar?=null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,7 +94,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
             startActivity(intent)
 
-        } else {
+        } else { //logged in
             setContentView(R.layout.activity_main)
             setSupportActionBar(my_toolbar)
 
@@ -102,6 +105,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             db.collection("usernames").document(userid).get().addOnSuccessListener {
 
                 username = it.getString("username")
+                println("username is $username")
             }
 
             Mapbox.getInstance(applicationContext, getString(R.string.access_token))
@@ -125,8 +129,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 editor.apply()
 
                 db.collection(userid).get().addOnSuccessListener {
-                val numCoins=it.size() // total number of coins, both collected and recieved
-
+                    val numCoins = it.size() // total number of coins, both collected and recieved
 
 
 
@@ -136,13 +139,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                     if (numCoins > 0) {// user collected some coins , proceed to award gold
                         @Suppress("UNCHECKED_CAST")
-                        db.collection("UserData").document(userid).get().addOnSuccessListener {
-                            val sentCoins=it.get("sentCoins") as ArrayList<String>?
-                            if (sentCoins!=null){
-                                numCollectedCoins=sentCoins.size
-                            }
-                            else{
-                                numCollectedCoins=0
+                        db.collection("userData").document("$username").get().addOnSuccessListener {
+                            val sentCoins = it.get("sentCoins") as ArrayList<String>?
+                            if (sentCoins != null) {
+                                numCollectedCoins = sentCoins.size
+                            } else {
+                                numCollectedCoins = 0
                             }
 
                         }
@@ -161,20 +163,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
                         }
-                        var targetCoinsNo=0
-                        var multiplier=0.0
-                        var goalAchieved=false
+                        var targetCoinsNo = 0
+                        var multiplier = 0.0
+                        var goalAchieved = false
                         db.collection("userData").document("$username").get().addOnSuccessListener {
                             val dailyGoal = it.getString("dailyGoal")!!
-                            val nextDailyGoal=it.getString("nextDailyGoal")
-                            it.reference.update("dailyGoal",nextDailyGoal)
-                            when (dailyGoal){
-                                "noGoal"->{
-                                    goalAchieved=true
-                                    multiplier=1.0
+                            val nextDailyGoal = it.getString("nextDailyGoal")
+                            it.reference.update("dailyGoal", nextDailyGoal)
+
+                            when (dailyGoal) {
+                                "noGoal" -> {
+                                    goalAchieved = true
+                                    multiplier = 1.0
 
                                 }
-                                "medium"-> {
+                                "medium" -> {
                                     targetCoinsNo = 25
                                     if (numCollectedCoins >= targetCoinsNo) {
                                         goalAchieved = true
@@ -182,16 +185,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                     }
                                 }
 
-                                    "hard"->{
-                                        targetCoinsNo = 50
-                                        if (numCollectedCoins >= targetCoinsNo) {
-                                            goalAchieved = true
-                                            multiplier = 2.0
+                                "hard" -> {
+                                    targetCoinsNo = 50
+                                    if (numCollectedCoins >= targetCoinsNo) {
+                                        goalAchieved = true
+                                        multiplier = 2.0
                                     }
                                 }
 
                             }
-                            if (goalAchieved && numCollectedCoins>0)  { // second clause covers case where user recieved coins but didn't collect
+                            if (goalAchieved && numCollectedCoins > 0) { // second clause covers case where user recieved coins but didn't collect
                                 collectedCoinsPairs = sortListPair(collectedCoinsPairs)
                                 val numDepositedCoins = min(25, numCollectedCoins)
                                 println("deposited coins:$numDepositedCoins")
@@ -201,23 +204,25 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                                 }
                                 //multiply by corresponding multiplier
-                                dailyGold=(dailyGold*multiplier).roundToInt()
-                            }
-                            else{ // goal not achieved
-                                dailyGold=0
+                                dailyGold = (dailyGold * multiplier).roundToInt()
+                            } else { // goal not achieved
+                                dailyGold = 0
                             }
                             println("gold for the day:$dailyGold")
                             val builder = AlertDialog.Builder(this)
                             builder.setTitle("Day summary")
-                            val msg:String
-                            if (goalAchieved)               { msg ="Goal achieved\n Coins collected:$numCollectedCoins"}
-                            else                            { msg="Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"}
+                            val msg: String
+                            if (goalAchieved) {
+                                msg = "Goal achieved\n Coins collected:$numCollectedCoins"
+                            } else {
+                                msg = "Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"
+                            }
                             builder.setMessage("$msg \n Daily gold=$dailyGold")
                             builder.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
                             builder.show()
-                            db.collection("userData").document("$username").get().addOnSuccessListener {
+                            db.collection("userData").document(username!!).get().addOnSuccessListener {
                                 var totalGold = it.getDouble("totalGold")!!.roundToInt()
-                                totalGold +=  dailyGold
+                                totalGold += dailyGold
                                 it.reference.update("totalGold", totalGold)
                                 it.reference.update("sentCoins", ArrayList<String>())
 
@@ -230,6 +235,33 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 }
 
 
+            }
+            progress_bar = findViewById(R.id.main_progressbar)
+            progress_bar?.progress = 0
+
+            db.collection("usernames").document(userid).get().addOnSuccessListener {
+
+                username = it.getString("username")
+                println("username is $username")
+
+                println("testest   $username")
+
+                    db.collection("userData").document(username!!).get().addOnSuccessListener {
+                        var dailyGoal = it.getString("dailyGoal")
+                        when (dailyGoal) {
+                            "noGoal" -> {
+                                progress_bar?.visibility = View.GONE
+                            }
+                            "medium" -> {
+                                progress_bar?.max = 25
+                            }
+
+                            "hard" -> {
+                                progress_bar?.max = 50
+                            }
+
+                        }
+                    }
 
 
             }
@@ -305,13 +337,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             enableLocation()
             markers = viewMarkers()
             val shilrate=findViewById<TextView>(R.id.shil_rate)
-            shilrate.text=rates["SHIL"].toString()
+            shilrate.text="%.2f".format(rates["SHIL"])
             val penyrate=findViewById<TextView>(R.id.dolr_rate)
-            penyrate.text=rates["PENY"].toString()
+            penyrate.text="%.2f".format(rates["PENY"])
             val dolrrate=findViewById<TextView>(R.id.quid_rate)
-            dolrrate.text=rates["DOLR"].toString()
+            dolrrate.text="%.2f".format(rates["DOLR"])
             val quidrate=findViewById<TextView>(R.id.peny_rate)
-            quidrate.text=rates["QUID"].toString()
+            quidrate.text="%.2f".format(rates["QUID"])
 
 
             val userid = user.uid
@@ -320,6 +352,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                 numCollectedCoins = it.size()
                 println("collected coins:$numCollectedCoins")
+                progress_bar?.progress=numCollectedCoins
                 it.forEach {
                     val id = it.getString("coinid")
                     val i = coinInd?.indexOf(id).toString()
@@ -418,6 +451,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     val coinCollected = Coin(id!!, coinVal, curr, gold)
                     val userid = user.uid
                     numCollectedCoins ++
+                    progress_bar?.progress=numCollectedCoins
 
 
                     db.collection(userid).document(id).set(coinCollected).addOnSuccessListener {

@@ -79,6 +79,9 @@ class FriendsActivity : AppCompatActivity() {
         db.collection("usernames").document("$userid").get().addOnSuccessListener {
             ownUsername = it.getString("username")!!
         }
+
+
+
         friends_button_sendOne.setOnClickListener {
             recieverUsername = editText.text.toString()
             if (numSpareChange==0){
@@ -145,6 +148,75 @@ class FriendsActivity : AppCompatActivity() {
 
                 }
             }
+        friends_button_sendAll.setOnClickListener {
+            recieverUsername = editText.text.toString()
+            if (numSpareChange==0){
+                Toast.makeText(this, "no spare change", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (recieverUsername == ownUsername) {
+                Toast.makeText(this, "cannot send spare change to yourself", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            } else {
+
+                db.collection("usernames").get().addOnSuccessListener {
+                    var found = false
+                    it.forEach {
+                        val name = it.getString("username")
+
+                        if (name == recieverUsername) {
+                            found = true
+                            recieverId = it.getString("uid")!!
+
+                        }
+
+
+                    }
+                    if (!found) {
+                        Toast.makeText(this, "username not found", Toast.LENGTH_SHORT).show()
+                        return@addOnSuccessListener
+                    } else {//send coins
+                        for (i in 1..numSpareChange){
+                        var coinToSendId=collectedCoins[25].first
+                        db.collection("$userid").document(coinToSendId).get().addOnSuccessListener {
+                            //remove from database , add to sent coins
+                            db.collection("userData").document(ownUsername).get().addOnSuccessListener {
+                                @Suppress("UNCHECKED_CAST")
+
+                                val sentCoins =it.get("sentCoins") as ArrayList<String>?
+                                sentCoins?.add(coinToSendId)
+                                it.reference.update("sentCoins",sentCoins)
+                            }
+                            //append RECIEVED to distinguish coin
+                            coinToSendId="RECIEVED$coinToSendId"
+                            val coinToSend = Coin(coinToSendId,it.getDouble("coinvalue")!!,it.getString("curr")!!,it.getDouble("gold")!!.roundToInt())
+                            it.reference.delete()
+                            db.collection(recieverId).document(coinToSendId).set(coinToSend).addOnSuccessListener {
+
+                                Toast.makeText(this, "coin sent", Toast.LENGTH_SHORT).show()
+                                numSpareChange--
+                                spare.text = "Number of space change coins:$numSpareChange"
+                                collectedCoins.removeAt(25)
+                            }
+                                list.removeAt(0)
+                                listView.adapter=MyListAdapter(this,R.layout.row,list)
+
+
+
+                            }
+
+                        }
+
+
+
+                    }
+                }
+
+
+            }
+        }
+
 
 
     }

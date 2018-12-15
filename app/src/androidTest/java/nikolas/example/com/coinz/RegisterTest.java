@@ -60,7 +60,7 @@ public class RegisterTest {
         // The recommended way to handle such scenarios is to use Espresso idling resources:
         // https://google.github.io/android-testing-support-library/docs/espresso/idling-resource/index.html
         try {
-            Thread.sleep(1000);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -116,7 +116,11 @@ public class RegisterTest {
         appCompatButton.perform(click());
         onView(withText("username already in use")).inRoot(new ToastMatcher())
                 .check(matches(withText("username already in use")));
-
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         ViewInteraction appCompatEditText5 = onView(
                 allOf(withId(R.id.email_edittext_register), withText("test@hot.com"),
                         childAtPosition(
@@ -170,6 +174,11 @@ public class RegisterTest {
         appCompatButton.perform(click());
         onView(withText("Failed to create user:The email address is already in use by another account.")).inRoot(new ToastMatcher())
                 .check(matches(withText("Failed to create user:The email address is already in use by another account.")));
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
 
         ViewInteraction appCompatEditText9 = onView(
