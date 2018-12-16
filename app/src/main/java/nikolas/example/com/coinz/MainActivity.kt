@@ -79,6 +79,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var mAuth: FirebaseAuth? = null
     private var progressBar:ProgressBar?=null
     private var sentCoinsNumber=0
+    val builder = AlertDialog.Builder(this)
+    private lateinit var dialog:AlertDialog
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -215,7 +218,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                 dailyGold = 0
                             }
                             println("gold for the day:$dailyGold")
-                            val builder = AlertDialog.Builder(this)
                             builder.setTitle("Day summary")
 
                             val msg = if (goalAchieved) {
@@ -322,9 +324,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 return true
             }
             R.id.action_goal -> {
-                val builder = AlertDialog.Builder(this)
-                builder.setTitle("Day summary")
-                builder.setMessage("test message")
+                builder.setTitle("Select Daily goal")
+                builder.setMessage("*****No goal*****:\n" +
+                                   "No multiplier\n" +
+                                    "*****Medium*****:\n" +
+                                    "Collect at least 25 coins and you will get a bonus of 1.5 , zero gold if you fail \n" +
+                                    "*****Hard*****:\n" +
+                                    "Collect at least 25 coins and you will get a bonus of 1.5 , zero gold if you fail \n"+
+                                    "Goal selected does not affect current day ,can be changed anytime")
                 builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int ->
                     db.collection("userData").document(username!!).update("nextDailyGoal","noGoal").addOnSuccessListener {
                         Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
@@ -341,7 +348,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     }
                 }
 
-                builder.show()
+                 dialog =builder.show()!!
 
                 return true
             }
@@ -625,7 +632,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     override fun onDestroy() {
         super.onDestroy()
         println("DESTROY")
+        dialog.dismiss()
         mapView?.onDestroy()
+
     }
 
     /*override fun onSaveInstanceState(outState: Bundle?, outPersistentState: PersistableBundle?) {

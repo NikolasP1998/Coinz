@@ -32,7 +32,7 @@ class FriendsActivity : AppCompatActivity() {
         val spare =findViewById<TextView>(R.id.spare_textView_friends)
         spare.text="Number of space change coins:0"
         val listView=findViewById<ListView>(R.id.list_view)
-        val list = mutableListOf<Model>()
+        val list = mutableListOf<SpareChangeData>()
 
         val userid = FirebaseAuth.getInstance().uid
         var collectedCoins = ArrayList<Pair<String, Int>>() //arraylist of pairs to add coin id and value to sort
@@ -53,7 +53,7 @@ class FriendsActivity : AppCompatActivity() {
                             val value =it.getDouble("coinvalue")!!
                             val coinData = "$curr   $value"
 
-                            list.add(Model(coinData))
+                            list.add(SpareChangeData(coinData))
                         }
                         val pair = Pair(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
                         collectedCoins.add(pair)
@@ -221,4 +221,5 @@ class FriendsActivity : AppCompatActivity() {
         return (result  )
     }
 }
+class SpareChangeData(val coinData:String)
 
