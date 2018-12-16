@@ -49,7 +49,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:background="@android:color/holo_red_dark"
-        android:text="send one"
+        android:text="send first"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/friends_button_sendAll"
         app:layout_constraintHorizontal_bias="0.272"
@@ -87,9 +87,15 @@
         app:layout_constraintVertical_bias="0.497" />
 
     <TextView
-        android:id="@+id/friends_textView_spare"
+        android:id="@+id/spare_textView_friends"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        tools:layout_editor_absoluteX="16dp"
-        tools:layout_editor_absoluteY="50dp" />
+        android:layout_marginBottom="539dp"
+        android:layout_marginEnd="83dp"
+        android:layout_marginStart="45dp"
+        android:layout_marginTop="45dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/textView3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </android.support.constraint.ConstraintLayout>

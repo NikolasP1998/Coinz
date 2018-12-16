@@ -84,7 +84,9 @@ class RegisterActivity : AppCompatActivity() {
         val uid =FirebaseAuth.getInstance().uid ?:""
         val username = username_editText_register.text.toString()
         val email =email_edittext_register.text.toString()
-        val user=User(uid,username,email,0.0,ArrayList(),"noGoal","noGoal")
+        val user=User(uid,username,email,
+                0.0,ArrayList(),"noGoal","noGoal",
+                0,0,0,1)
         db.collection("userData").document(username)
                 .set(user)
                 .addOnSuccessListener {
@@ -112,6 +114,8 @@ class RegisterActivity : AppCompatActivity() {
 
 
 
-data class User(val uid:String,val username:String,val email:String,val totalGold:Double,val sentCoins:ArrayList<String>,val dailyGoal:String,val nextDailyGoal:String)
+data class User(val uid:String,val username:String,val email:String,
+                val totalGold:Double,val sentCoins:ArrayList<String>,val dailyGoal:String,val nextDailyGoal:String,
+                val achievementDays:Int,var achievementGold:Int,var achievementSpareChange:Int,var wand:Int)
 
 data class Username(val uid:String,val username: String)

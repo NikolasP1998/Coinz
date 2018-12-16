@@ -1,5 +1,6 @@
 package nikolas.example.com.coinz
 
+import android.annotation.SuppressLint
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 
@@ -19,6 +20,7 @@ class FriendsActivity : AppCompatActivity() {
     private var numCollectedCoins:Int=0
     private var numSpareChange:Int=0
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
@@ -27,13 +29,12 @@ class FriendsActivity : AppCompatActivity() {
 
 
         val editText = findViewById<EditText>(R.id.username_editText_friends)
-        val spare =findViewById<TextView>(R.id.friends_textView_spare)
+        val spare =findViewById<TextView>(R.id.spare_textView_friends)
         spare.text="Number of space change coins:0"
         val listView=findViewById<ListView>(R.id.list_view)
         val list = mutableListOf<Model>()
 
         val userid = FirebaseAuth.getInstance().uid
-        println(userid)
         var collectedCoins = ArrayList<Pair<String, Int>>() //arraylist of pairs to add coin id and value to sort
         //check that user has spare change and display number
         db.collection("$userid").get().addOnSuccessListener {
@@ -47,28 +48,23 @@ class FriendsActivity : AppCompatActivity() {
                     val collectedCoinId = it.getString("coinid")!!
                     if (!(collectedCoinId.startsWith("RECIEVED"))) {
                         numCollectedCoins++
-                        if (numCollectedCoins>=25){
+                        if (numCollectedCoins>25){
                             val curr = it.getString("curr")!!
                             val value =it.getDouble("coinvalue")!!
-                            val coinData = "$curr   ${value.toString()}"
+                            val coinData = "$curr   $value"
 
                             list.add(Model(coinData))
                         }
-                        val pair = Pair<String, Int>(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
+                        val pair = Pair(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
                         collectedCoins.add(pair)
                     }
                 }
-                listView.adapter=MyListAdapter(this,R.layout.row,list)
+                listView.adapter=SpareChangeListAdapter(this,R.layout.row,list)
                 collectedCoins = sortListPairDesc(collectedCoins)
 
 
-                if (numCollectedCoins > 25) {
-                    numSpareChange = numCollectedCoins - 25
-
-
-
-                } else {
-                    numSpareChange = 0
+                numSpareChange = if (numCollectedCoins > 25) numCollectedCoins - 25 else {
+                    0
                 }
                 spare.text="Number of space change coins:$numSpareChange"
 
@@ -132,7 +128,7 @@ class FriendsActivity : AppCompatActivity() {
                                     spare.text="Number of space change coins:$numSpareChange"
                                     collectedCoins.removeAt(25)
                                     list.removeAt(0)
-                                    listView.adapter=MyListAdapter(this,R.layout.row,list)
+                                    listView.adapter=SpareChangeListAdapter(this,R.layout.row,list)
 
 
 
@@ -200,7 +196,7 @@ class FriendsActivity : AppCompatActivity() {
                                 collectedCoins.removeAt(25)
                             }
                                 list.removeAt(0)
-                                listView.adapter=MyListAdapter(this,R.layout.row,list)
+                                listView.adapter=SpareChangeListAdapter(this,R.layout.row,list)
 
 
 
@@ -220,8 +216,8 @@ class FriendsActivity : AppCompatActivity() {
 
 
     }
-    fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
-        val result = ArrayList(list.sortedWith(compareBy({ it.second })))
+    private fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
+        val result = ArrayList(list.sortedWith(compareBy { it.second }))
         return (result  )
     }
 }

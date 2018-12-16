@@ -8,7 +8,7 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
 
-class MyListAdapter (var mCtx:Context,var resources:Int,var items:List<Model>)
+class SpareChangeListAdapter (var mCtx:Context, var resources:Int, var items:List<Model>)
     :ArrayAdapter<Model>(mCtx,resources,items){
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         //inflate layout

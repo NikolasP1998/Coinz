@@ -65,15 +65,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private val link = DownloadFileTask(argForDownload)
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     // variables for markers declared below
-    private lateinit var markers: ArrayList<MarkerOptions>
     private lateinit var markersList: ArrayList<Marker>
     private lateinit var user: FirebaseUser
     private var numCollectedCoins = 0
-    private var rates = HashMap<String, Double>()
+    companion object test {
+         var rates = HashMap<String, Double>()
+         var coinInd: ArrayList<String>? = ArrayList()
+         lateinit var markers: ArrayList<MarkerOptions>
+
+    }
+
     private var username: String? = null
-    private var coinInd: ArrayList<String>? = ArrayList()
     private var mAuth: FirebaseAuth? = null
-    private var progress_bar:ProgressBar?=null
+    private var progressBar:ProgressBar?=null
+    private var sentCoinsNumber=0
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,9 +94,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         // if not logged in , return to register screen
         if (uid == null) {
             val intent = Intent(this, RegisterActivity::class.java)
-            //finish()
             Log.d("Login2", "$intent")
-            //intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK) //clear activity stack
             startActivity(intent)
 
         } else { //logged in
@@ -143,12 +147,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             val sentCoins = it.get("sentCoins") as ArrayList<String>?
                             if (sentCoins != null) {
                                 numCollectedCoins = sentCoins.size
+                                sentCoinsNumber=sentCoins.size
                             } else {
                                 numCollectedCoins = 0
                             }
 
                         }
                         var dailyGold = 0
+
                         var collectedCoinsPairs = ArrayList<Pair<String, Int>>()
                         it.forEach {
                             val collectedCoinId = it.getString("coinid")!!
@@ -211,20 +217,45 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             println("gold for the day:$dailyGold")
                             val builder = AlertDialog.Builder(this)
                             builder.setTitle("Day summary")
-                            val msg: String
-                            if (goalAchieved) {
-                                msg = "Goal achieved\n Coins collected:$numCollectedCoins"
+
+                            val msg = if (goalAchieved) {
+                                "Goal achieved\n Coins collected:$numCollectedCoins"
                             } else {
-                                msg = "Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"
+                                "Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"
                             }
                             builder.setMessage("$msg \n Daily gold=$dailyGold")
                             builder.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
                             builder.show()
                             db.collection("userData").document(username!!).get().addOnSuccessListener {
+                                //update firebase with gold and achievement values
                                 var totalGold = it.getDouble("totalGold")!!.roundToInt()
                                 totalGold += dailyGold
                                 it.reference.update("totalGold", totalGold)
                                 it.reference.update("sentCoins", ArrayList<String>())
+                                //update achievements
+                                var wand=it.getDouble("wand")!!.toInt()
+                                var achievementGold = it.getDouble("achievementGold")!!.toInt()
+                                achievementGold+=dailyGold
+                                if (achievementGold>=10000){ //achievement completed , award wand
+                                    achievementGold-=10000
+                                    wand++
+                                }
+                                it.reference.update("achievementGold",achievementGold)
+                                var achievementDays=it.getDouble("achievementDays")!!.toInt()
+                                achievementDays++
+                                if (achievementDays>=10){
+                                    achievementDays-=10
+                                    wand++
+                                }
+                                it.reference.update("achievementsDays",achievementDays)
+                                var achievementSpareChange=it.getDouble("achievementSpareChange")!!.toInt()
+                                achievementSpareChange+=sentCoinsNumber
+                                if (achievementSpareChange>=50){
+                                    achievementSpareChange-=10
+                                    wand++
+                                }
+                                it.reference.update("achievementSpareChange",achievementSpareChange)
+                                it.reference.update("wand",wand)
 
 
                             }
@@ -236,8 +267,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
             }
-            progress_bar = findViewById(R.id.main_progressbar)
-            progress_bar?.progress = 0
+            progressBar = findViewById(R.id.main_progressbar)
+            progressBar?.progress = 0
 
             db.collection("usernames").document(userid).get().addOnSuccessListener {
 
@@ -247,17 +278,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 println("testest   $username")
 
                     db.collection("userData").document(username!!).get().addOnSuccessListener {
-                        var dailyGoal = it.getString("dailyGoal")
+                        val dailyGoal = it.getString("dailyGoal")
                         when (dailyGoal) {
                             "noGoal" -> {
-                                progress_bar?.visibility = View.GONE
+                                progressBar?.visibility = View.GONE
                             }
                             "medium" -> {
-                                progress_bar?.max = 25
+                                progressBar?.max = 25
                             }
 
                             "hard" -> {
-                                progress_bar?.max = 50
+                                progressBar?.max = 50
                             }
 
                         }
@@ -294,9 +325,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 val builder = AlertDialog.Builder(this)
                 builder.setTitle("Day summary")
                 builder.setMessage("test message")
-                builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int -> }
-                builder.setNeutralButton("Medium") { _: DialogInterface, _: Int -> }
-                builder.setPositiveButton("Hard") { _: DialogInterface, _: Int -> }
+                builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int ->
+                    db.collection("userData").document(username!!).update("nextDailyGoal","noGoal").addOnSuccessListener {
+                        Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
+                    }
+                }
+                builder.setNeutralButton("Medium") { _: DialogInterface, _: Int ->
+                    db.collection("userData").document(username!!).update("nextDailyGoal","medium").addOnSuccessListener {
+                        Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
+                    }
+                }
+                builder.setPositiveButton("Hard") { _: DialogInterface, _: Int ->
+                    db.collection("userData").document(username!!).update("nextDailyGoal","hard").addOnSuccessListener {
+                        Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
+                    }
+                }
 
                 builder.show()
 
@@ -312,7 +355,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 return true
             }
             R.id.action_wand -> {
-                Toast.makeText(this, "wand", Toast.LENGTH_LONG).show()
+                val intent = Intent(this, AchievementsActivity::class.java)
+
+
+                Log.d("MainActivity", "closing map , moving to achievements activity")
+
+                startActivity(intent)
                 return true
             }
 
@@ -352,7 +400,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                 numCollectedCoins = it.size()
                 println("collected coins:$numCollectedCoins")
-                progress_bar?.progress=numCollectedCoins
+                progressBar?.progress=numCollectedCoins
                 it.forEach {
                     val id = it.getString("coinid")
                     val i = coinInd?.indexOf(id).toString()
@@ -369,6 +417,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                 }
                 mapView?.getMapAsync { _ ->
+
                     markersList = map?.addMarkers(markers) as ArrayList
 
                 }
@@ -442,6 +491,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             setCameraPosition(originLocation)
             val userLoc = LatLng(location.latitude, location.longitude)
             for (m in markers) {
+
                 val markerPos = m.position
                 if (userLoc.distanceTo(markerPos) <= 25) {
                     val id = coinInd?.get(m.title.toInt())
@@ -450,8 +500,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     val gold = (coinVal * rates[curr]!!).roundToInt()
                     val coinCollected = Coin(id!!, coinVal, curr, gold)
                     val userid = user.uid
-                    numCollectedCoins ++
-                    progress_bar?.progress=numCollectedCoins
+                    numCollectedCoins++
+                    progressBar?.progress = numCollectedCoins
 
 
                     db.collection(userid).document(id).set(coinCollected).addOnSuccessListener {
@@ -477,7 +527,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                 }
 
+
             }
+
         }
     }
 
@@ -549,6 +601,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     override fun onResume() {
         super.onResume()
         mapView?.onResume()
+        if (AchievementsActivity.collectedCoins.isNotEmpty()) { //coins collected remotely , update map
+
+            AchievementsActivity.collectedCoins.forEach() {
+
+
+                markers.remove(it)
+
+            }
+        }
     }
 
     override fun onPause() {
@@ -621,6 +682,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             val mark = MarkerOptions().title(i.toString()).snippet("$currency:$value").position(x).icon(findIcon(currency))
             list.add(mark)
         }
+
 
         return list
     }
