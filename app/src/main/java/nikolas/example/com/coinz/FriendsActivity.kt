@@ -60,7 +60,7 @@ class FriendsActivity : AppCompatActivity() {
                     }
                 }
                 listView.adapter=SpareChangeListAdapter(this,R.layout.row,list)
-                collectedCoins = sortListPairDesc(collectedCoins)
+                collectedCoins = sortListPair(collectedCoins)
 
 
                 numSpareChange = if (numCollectedCoins > 25) numCollectedCoins - 25 else {
@@ -216,8 +216,8 @@ class FriendsActivity : AppCompatActivity() {
 
 
     }
-    private fun sortListPairDesc(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
-        val result = ArrayList(list.sortedWith(compareBy { it.second }))
+    private fun sortListPair(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
+        val result = ArrayList(list.sortedWith(compareByDescending { it.second }))
         return (result  )
     }
 }

@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private lateinit var markersList: ArrayList<Marker>
     private lateinit var user: FirebaseUser
     private var numCollectedCoins = 0
-    companion object test {
+    companion object  {
          var rates = HashMap<String, Double>()
          var coinInd: ArrayList<String>? = ArrayList()
          lateinit var markers: ArrayList<MarkerOptions>
@@ -79,8 +79,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var mAuth: FirebaseAuth? = null
     private var progressBar:ProgressBar?=null
     private var sentCoinsNumber=0
-    val builder = AlertDialog.Builder(this)
-    private lateinit var dialog:AlertDialog
+    private  var builder:AlertDialog.Builder?=null
+    private  var dialog:AlertDialog?=null
 
 
 
@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             db.collection("usernames").document(userid).get().addOnSuccessListener {
 
                 username = it.getString("username")
-                println("username is $username")
+                Log.d("MainActivity","username is $username")
             }
 
             Mapbox.getInstance(applicationContext, getString(R.string.access_token))
@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
             if (downloadDate != currentDate) {
-                println("newDay")
+                Log.d("Main Activity","newDay")
                 downloadDate = currentDate
                 link.execute("http://homepages.inf.ed.ac.uk/stg/coinz/$downloadDate/coinzmap.geojson")
                 val editor = settings.edit()
@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
                         }
                         var dailyGold = 0
-
+                        //initialize an arraylist of pairs to be sorted later
                         var collectedCoinsPairs = ArrayList<Pair<String, Int>>()
                         it.forEach {
                             val collectedCoinId = it.getString("coinid")!!
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                 numCollectedCoins++
                                 val pair = Pair(collectedCoinId, (it.getDouble("gold")!!.roundToInt()))
                                 collectedCoinsPairs.add(pair)
-                            } else { //recieved coin , add gold
+                            } else { //recieved coin , add gold only
                                 dailyGold += it.getDouble("gold")!!.roundToInt()
                             }
                             it.reference.delete()
@@ -206,7 +206,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             if (goalAchieved && numCollectedCoins > 0) { // second clause covers case where user recieved coins but didn't collect
                                 collectedCoinsPairs = sortListPair(collectedCoinsPairs)
                                 val numDepositedCoins = min(25, numCollectedCoins)
-                                println("deposited coins:$numDepositedCoins")
+                                Log.d("MainActivity","deposited coins:$numDepositedCoins")
                                 for (i in 1..numDepositedCoins) {
                                     dailyGold += collectedCoinsPairs[i - 1].second
 
@@ -217,17 +217,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             } else { // goal not achieved
                                 dailyGold = 0
                             }
-                            println("gold for the day:$dailyGold")
-                            builder.setTitle("Day summary")
+                            Log.d("Main Activity","gold for the day:$dailyGold")
+                            builder=AlertDialog.Builder(this)
+                            builder?.setTitle("Day summary")
 
                             val msg = if (goalAchieved) {
                                 "Goal achieved\n Coins collected:$numCollectedCoins"
                             } else {
                                 "Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"
                             }
-                            builder.setMessage("$msg \n Daily gold=$dailyGold")
-                            builder.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
-                            builder.show()
+                            builder=AlertDialog.Builder(this)
+                            builder?.setMessage("$msg \n Daily gold=$dailyGold")
+                            builder?.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
+                            builder?.show()
                             db.collection("userData").document(username!!).get().addOnSuccessListener {
                                 //update firebase with gold and achievement values
                                 var totalGold = it.getDouble("totalGold")!!.roundToInt()
@@ -275,9 +277,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             db.collection("usernames").document(userid).get().addOnSuccessListener {
 
                 username = it.getString("username")
-                println("username is $username")
 
-                println("testest   $username")
+
 
                     db.collection("userData").document(username!!).get().addOnSuccessListener {
                         val dailyGoal = it.getString("dailyGoal")
@@ -309,46 +310,49 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         return super.onCreateOptionsMenu(menu)
     }
-
+    // handle app bar
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item?.itemId) {
             R.id.action_friends -> {
                 val intent = Intent(this, FriendsActivity::class.java)
-                Log.d("MainActivity", "signed out succesfully")
+                Log.d("MainActivity", "moved to friends activity")
 
                 startActivity(intent)
                 return true
             }
             R.id.action_lead -> {
-                Toast.makeText(this, "lead", Toast.LENGTH_LONG).show()
+                val intent = Intent(this, LeaderboardActivity::class.java)
+                Log.d("MainActivity", "moved to leaderboard activity")
+                startActivity(intent)
                 return true
             }
             R.id.action_goal -> {
-                builder.setTitle("Select Daily goal")
-                builder.setMessage("*****No goal*****:\n" +
+                builder=AlertDialog.Builder(this)
+
+                builder?.setTitle("Select Daily goal")
+                builder?.setMessage("*****No goal*****:\n" +
                                    "No multiplier\n" +
                                     "*****Medium*****:\n" +
                                     "Collect at least 25 coins and you will get a bonus of 1.5 , zero gold if you fail \n" +
                                     "*****Hard*****:\n" +
                                     "Collect at least 25 coins and you will get a bonus of 1.5 , zero gold if you fail \n"+
                                     "Goal selected does not affect current day ,can be changed anytime")
-                builder.setNegativeButton("noGoal") { _: DialogInterface, _: Int ->
+                builder?.setNegativeButton("noGoal") { _: DialogInterface, _: Int ->
                     db.collection("userData").document(username!!).update("nextDailyGoal","noGoal").addOnSuccessListener {
                         Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
                     }
                 }
-                builder.setNeutralButton("Medium") { _: DialogInterface, _: Int ->
+                builder?.setNeutralButton("Medium") { _: DialogInterface, _: Int ->
                     db.collection("userData").document(username!!).update("nextDailyGoal","medium").addOnSuccessListener {
                         Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
                     }
                 }
-                builder.setPositiveButton("Hard") { _: DialogInterface, _: Int ->
+                builder?.setPositiveButton("Hard") { _: DialogInterface, _: Int ->
                     db.collection("userData").document(username!!).update("nextDailyGoal","hard").addOnSuccessListener {
                         Toast.makeText(this, "Daily goal updated , effective from tomorrow", Toast.LENGTH_LONG).show()
                     }
                 }
-
-                 dialog =builder.show()!!
+                 dialog =builder?.show()!!
 
                 return true
             }
@@ -406,7 +410,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 val markerIds = markers.map { marker -> marker.title } as ArrayList<String>
 
                 numCollectedCoins = it.size()
-                println("collected coins:$numCollectedCoins")
+                Log.d("MainActivity","collected coins:$numCollectedCoins")
                 progressBar?.progress=numCollectedCoins
                 it.forEach {
                     val id = it.getString("coinid")
@@ -610,7 +614,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         mapView?.onResume()
         if (AchievementsActivity.collectedCoins.isNotEmpty()) { //coins collected remotely , update map
 
-            AchievementsActivity.collectedCoins.forEach() {
+            AchievementsActivity.collectedCoins.forEach {
 
 
                 markers.remove(it)
@@ -631,8 +635,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
     override fun onDestroy() {
         super.onDestroy()
-        println("DESTROY")
-        dialog.dismiss()
+        Log.d("MainActivity","DESTROY") //for testing
+        if (dialog!=null) {
+            dialog!!.dismiss()
+        }
         mapView?.onDestroy()
 
     }
@@ -655,6 +661,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private fun viewMarkers(): ArrayList<MarkerOptions> {
         val list = ArrayList<MarkerOptions>()
         val str = File("/data/data/nikolas.example.com.coinz/files/coinzmap.geojson").readText(Charsets.UTF_8)
+        //update rates
         val ratesStr = JSONObject(str).getJSONObject("rates")
         val shilRate = ratesStr.getString("SHIL").toDouble()
         val dolRate = ratesStr.getString("DOLR").toDouble()
@@ -664,7 +671,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         rates["DOLR"]=dolRate
         rates["QUID"]= quidRate
         rates["PENY"]= penyRate
-        println("rates updated")
+        Log.d("MainActivity","rates updated")
 
         val json = FeatureCollection.fromJson(str).features()
         //index coins from 1 to 50 , to allow for use of "magic wand" bonus feature
@@ -710,7 +717,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
     private  fun sortListPair(list: ArrayList<Pair<String, Int>>): ArrayList<Pair<String, Int>> {
-        val result = ArrayList(list.sortedWith(compareBy{ it.second }))
+        val result = ArrayList(list.sortedWith(compareByDescending{ it.second }))
         return (result)
     }
 

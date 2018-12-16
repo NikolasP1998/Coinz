@@ -59,7 +59,7 @@ class RegisterActivity : AppCompatActivity() {
                             .addOnFailureListener{
                                 Log.d("Main:","Failed to create user:${it.message}")
                                 Toast.makeText(this,"Failed to create user:${it.message}",Toast.LENGTH_SHORT).show()
-                                println("Failed to create user:${it.message}")
+                                Log.d("registerActivity","Failed to create user:${it.message}")
                             }
 
 
@@ -97,7 +97,7 @@ class RegisterActivity : AppCompatActivity() {
 
                 .set(uname)
                 .addOnSuccessListener {
-                    println("user added")
+                    Log.d("registerActivity","user added")
                 }
 
         }
