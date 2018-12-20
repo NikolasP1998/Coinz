@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     // variables for markers declared below
     private lateinit var markersList: ArrayList<Marker>
     private lateinit var user: FirebaseUser
-    private var numCollectedCoins = 0
+     var numCollectedCoins = 0
     companion object  {
          var rates = HashMap<String, Double>()
          var coinInd: ArrayList<String>? = ArrayList()
@@ -151,14 +151,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             if (sentCoins != null) {
                                 numCollectedCoins = sentCoins.size
                                 sentCoinsNumber=sentCoins.size
-                            } else {
-                                numCollectedCoins = 0
                             }
 
                         }
                         var dailyGold = 0
                         //initialize an arraylist of pairs to be sorted later
                         var collectedCoinsPairs = ArrayList<Pair<String, Int>>()
+                        db.collection("$uid").get().addOnSuccessListener {
                         it.forEach {
                             val collectedCoinId = it.getString("coinid")!!
                             if (!(collectedCoinId.startsWith("RECIEVED"))) {// coin collected , add to tally and list of pairs
@@ -171,7 +170,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             it.reference.delete()
 
 
+
                         }
+                        println("collected coins:$numCollectedCoins")
                         var targetCoinsNo = 0
                         var multiplier = 0.0
                         var goalAchieved = false
@@ -203,10 +204,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                 }
 
                             }
+
                             if (goalAchieved && numCollectedCoins > 0) { // second clause covers case where user recieved coins but didn't collect
                                 collectedCoinsPairs = sortListPair(collectedCoinsPairs)
                                 val numDepositedCoins = min(25, numCollectedCoins)
-                                Log.d("MainActivity","deposited coins:$numDepositedCoins")
+                                Log.d("MainActivity", "deposited coins:$numDepositedCoins")
                                 for (i in 1..numDepositedCoins) {
                                     dailyGold += collectedCoinsPairs[i - 1].second
 
@@ -217,8 +219,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             } else { // goal not achieved
                                 dailyGold = 0
                             }
-                            Log.d("Main Activity","gold for the day:$dailyGold")
-                            builder=AlertDialog.Builder(this)
+                            Log.d("Main Activity", "gold for the day:$dailyGold")
+                            builder = AlertDialog.Builder(this)
                             builder?.setTitle("Day summary")
 
                             val msg = if (goalAchieved) {
@@ -226,10 +228,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             } else {
                                 "Goal failed \n Coins collected:$numCollectedCoins/$targetCoinsNo"
                             }
-                            builder=AlertDialog.Builder(this)
+                            builder = AlertDialog.Builder(this)
                             builder?.setMessage("$msg \n Daily gold=$dailyGold")
                             builder?.setNeutralButton("OK") { _: DialogInterface, _: Int -> }
                             builder?.show()
+                        }
                             db.collection("userData").document(username!!).get().addOnSuccessListener {
                                 //update firebase with gold and achievement values
                                 var totalGold = it.getDouble("totalGold")!!.roundToInt()
@@ -255,7 +258,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                 var achievementSpareChange=it.getDouble("achievementSpareChange")!!.toInt()
                                 achievementSpareChange+=sentCoinsNumber
                                 if (achievementSpareChange>=50){
-                                    achievementSpareChange-=10
+                                    achievementSpareChange-=50
                                     wand++
                                 }
                                 it.reference.update("achievementSpareChange",achievementSpareChange)
